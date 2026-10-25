@@ -218,7 +218,10 @@ export function chooseBotAction(s: GameState, me: PlayerId, profile: BotProfile 
       const value = tileValueFor(s, me, au.tile) * profile.greed;
       const cap = Math.min(value, p.cash - Math.round(reserve * 0.5));
       const step = au.highBid < 100 ? 10 : au.highBid < 300 ? 20 : 50;
-      const bid = Math.max(au.highBid + 1, Math.ceil((au.highBid + step) / step) * step);
+      const price = tile(au.tile).price!;
+      // Сразу открываемся с половины номинала, чтобы не тянуть торги по 10.
+      const opening = Math.ceil((price * 0.5) / 10) * 10;
+      const bid = Math.max(au.highBid + 1, Math.ceil((au.highBid + step) / step) * step, au.highBid < opening ? opening : 0);
       if (bid <= cap) return { type: 'BID', player: me, amount: bid };
       return { type: 'PASS_AUCTION', player: me };
     }
