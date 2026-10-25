@@ -1,44 +1,81 @@
 import { useGame } from '../game/store';
-import { BAND, CORNER, along, inward, tileRect } from './layout';
+import { Model } from './assets';
+import { TILE_HEIGHT, stripCenter } from './layout';
 
-/** Модули (дома) и станции (отели) на цветной полосе клетки. */
+function House() {
+  return (
+    <Model
+      slot="house"
+      fallback={
+        <group>
+          <mesh position={[0, 0.07, 0]} castShadow>
+            <boxGeometry args={[0.16, 0.14, 0.16]} />
+            <meshStandardMaterial color="#f2e2c4" />
+          </mesh>
+          <mesh position={[0, 0.19, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.15, 0.12, 4]} />
+            <meshStandardMaterial color="#e2574c" flatShading />
+          </mesh>
+        </group>
+      }
+    />
+  );
+}
+
+function Hotel() {
+  return (
+    <Model
+      slot="hotel"
+      fallback={
+        <group>
+          <mesh position={[0, 0.13, 0]} castShadow>
+            <boxGeometry args={[0.42, 0.26, 0.2]} />
+            <meshStandardMaterial color="#e2574c" />
+          </mesh>
+          <mesh position={[0, 0.3, 0]} castShadow>
+            <boxGeometry args={[0.46, 0.06, 0.24]} />
+            <meshStandardMaterial color="#8a2f2a" />
+          </mesh>
+          <mesh position={[0, 0.4, 0]} castShadow>
+            <cylinderGeometry args={[0.02, 0.02, 0.16, 6]} />
+            <meshStandardMaterial color="#ddd" />
+          </mesh>
+        </group>
+      }
+    />
+  );
+}
+
+/** Модули (дома) и станции (отели) — на цветной полосе у внешнего края клетки. */
 export function Buildings() {
-  const state = useGame((s) => s.state);
-  if (!state) return null;
-  const items: React.ReactElement[] = [];
-  state.ownership.forEach((o, i) => {
-    if (!o || o.houses === 0) return;
-    const r = tileRect(i);
-    const [ix, iz] = inward(r.side);
-    const [ax, az] = along(r.side);
-    // Центр цветной полосы (у внутреннего края).
-    const off = CORNER / 2 - BAND / 2;
-    const cx = r.x + ix * off;
-    const cz = r.z + iz * off;
-    if (o.houses === 5) {
-      items.push(
-        <mesh key={`h${i}`} position={[cx, 0.17, cz]} castShadow>
-          <boxGeometry args={r.side % 2 === 0 ? [0.62, 0.3, 0.3] : [0.3, 0.3, 0.62]} />
-          <meshStandardMaterial color="#ffb703" emissive="#ff8800" emissiveIntensity={0.25} metalness={0.5} roughness={0.3} />
-        </mesh>,
-      );
-      return;
-    }
-    for (let k = 0; k < o.houses; k++) {
-      const t = (k - 1.5) * 0.27;
-      items.push(
-        <group key={`${i}-${k}`} position={[cx + ax * t, 0, cz + az * t]}>
-          <mesh position={[0, 0.1, 0]} castShadow>
-            <cylinderGeometry args={[0.1, 0.11, 0.18, 12]} />
-            <meshStandardMaterial color="#4cd7a0" metalness={0.3} roughness={0.4} />
-          </mesh>
-          <mesh position={[0, 0.2, 0]} castShadow>
-            <sphereGeometry args={[0.1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-            <meshStandardMaterial color="#b9fbe0" metalness={0.2} roughness={0.2} transparent opacity={0.85} />
-          </mesh>
-        </group>,
-      );
-    }
-  });
-  return <group>{items}</group>;
+  const ownership = useGame((s) => s.state?.ownership);
+  if (!ownership) return null;
+  return (
+    <group>
+      {ownership.map((o, i) => {
+        if (!o || o.houses === 0) return null;
+        const c = stripCenter(i);
+        const y = TILE_HEIGHT;
+        if (o.houses === 5) {
+          return (
+            <group key={i} position={[c.x, y, c.z]} rotation={[0, c.horizontal ? 0 : Math.PI / 2, 0]}>
+              <Hotel />
+            </group>
+          );
+        }
+        return (
+          <group key={i}>
+            {Array.from({ length: o.houses }, (_, k) => {
+              const t = (k - (o.houses - 1) / 2) * 0.24;
+              return (
+                <group key={k} position={[c.x + (c.horizontal ? t : 0), y, c.z + (c.horizontal ? 0 : t)]}>
+                  <House />
+                </group>
+              );
+            })}
+          </group>
+        );
+      })}
+    </group>
+  );
 }

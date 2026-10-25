@@ -18,9 +18,9 @@ test('партия запускается, кубики бросаются, бо
   await expect(page.locator('canvas')).toBeVisible();
   await expect(page.locator('[data-testid=player-p0]')).toBeVisible();
   await expect(page.locator('[data-testid=player-b1]')).toBeVisible();
+  await expect(page.locator('[data-testid=banner]')).toContainText('ТВОЙ ХОД');
 
   await page.click('[data-testid=roll]');
-  await expect(page.locator('[data-testid=log]')).toContainText('бросает');
 
   // Доигрываем свой ход: покупка (если предложено) и завершение.
   const enabled = (id: string) => page.locator(`[data-testid=${id}]:not([disabled])`);
@@ -34,14 +34,17 @@ test('партия запускается, кубики бросаются, бо
     await page.waitForTimeout(700);
   }
 
-  // Бот должен сделать ход и вернуть очередь человеку.
-  await expect(page.locator('[data-testid=log]')).toContainText('Вега бросает', { timeout: 20_000 });
+  // Бот должен сделать ход: это видно в журнале (панель «Ещё»).
+  await expect(page.locator('[data-testid=banner]')).toContainText('ТВОЙ ХОД', { timeout: 25_000 });
+  await page.click('[data-testid=more]');
+  await expect(page.locator('[data-testid=log]')).toContainText('Вега бросает');
+  await expect(page.locator('[data-testid=log]')).toContainText('Капитан бросает');
 
   // Сохранение подхватывается после перезагрузки.
   await page.reload();
   await expect(page.locator('[data-testid=continue]')).toBeVisible();
   await page.click('[data-testid=continue]');
-  await expect(page.locator('[data-testid=log]')).toContainText('бросает');
+  await expect(page.locator('[data-testid=banner]')).toBeVisible();
 
   expect(errors).toEqual([]);
 });

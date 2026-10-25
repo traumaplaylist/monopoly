@@ -16,7 +16,7 @@ export interface NewGameOptions {
   bots: number;
   seed: number;
   startCash: number;
-  maxTurns: number;
+  maxRounds: number;
   botDelay: number;
 }
 
@@ -109,7 +109,7 @@ export const useGame = create<GameStore>((set, get) => {
       const state = createGame({
         seed: opts.seed,
         players,
-        settings: { startCash: opts.startCash, maxTurns: opts.maxTurns },
+        settings: { startCash: opts.startCash, maxRounds: opts.maxRounds },
       });
       attach(new LocalGameClient(state), 'p0', opts.botDelay);
       saveGame({ state, localPlayerId: 'p0', botDelay: opts.botDelay });

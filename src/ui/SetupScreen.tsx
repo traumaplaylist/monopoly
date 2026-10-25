@@ -8,7 +8,7 @@ export function SetupScreen() {
   const [name, setName] = useState('Капитан');
   const [bots, setBots] = useState(3);
   const [startCash, setStartCash] = useState(1500);
-  const [maxTurns, setMaxTurns] = useState(0);
+  const [maxRounds, setMaxRounds] = useState(12);
   const [botDelay, setBotDelay] = useState(700);
   const [seed, setSeed] = useState('');
   const hasSave = loadGame() !== null;
@@ -19,7 +19,7 @@ export function SetupScreen() {
       playerName: name,
       bots,
       startCash,
-      maxTurns,
+      maxRounds,
       botDelay,
       seed: Number.isFinite(parsed) ? parsed : Math.floor(Math.random() * 1e9),
     });
@@ -62,11 +62,12 @@ export function SetupScreen() {
             </select>
           </label>
           <label>
-            Лимит ходов
-            <select value={maxTurns} onChange={(e) => setMaxTurns(Number(e.target.value))}>
-              <option value={0}>Без лимита — до последнего</option>
-              <option value={120}>120 ходов — побеждает самый богатый</option>
-              <option value={240}>240 ходов</option>
+            Длина партии
+            <select value={maxRounds} onChange={(e) => setMaxRounds(Number(e.target.value))}>
+              <option value={12}>12 раундов — побеждает самый богатый</option>
+              <option value={20}>20 раундов</option>
+              <option value={30}>30 раундов</option>
+              <option value={0}>Без лимита — до последнего банкрота</option>
             </select>
           </label>
           <label>

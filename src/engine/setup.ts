@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   startCash: 1500,
   startBonus: 200,
   jailFine: 50,
-  maxTurns: 0,
+  maxRounds: 0,
   maxTradesPerTurn: 3,
 };
 
@@ -46,6 +46,7 @@ export function createGame(setup: GameSetup): GameState {
     doublesCount: 0,
     extraRoll: false,
     turn: 1,
+    round: 1,
     decks,
     bank: { houses: 32, hotels: 12 },
     auction: null,

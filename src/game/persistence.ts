@@ -1,7 +1,7 @@
 // Сохранение в localStorage: работает и в браузере, и в WebView (Capacitor).
 import type { GameState, PlayerId } from '../engine';
 
-const KEY = 'orbital-capital:save:v1';
+const KEY = 'orbital-capital:save:v2';
 
 export interface SaveData {
   state: GameState;

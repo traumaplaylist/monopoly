@@ -107,8 +107,8 @@ export interface GameSettings {
   startCash: number;
   startBonus: number;
   jailFine: number;
-  /** Лимит ходов (0 — без лимита). По достижении побеждает самый богатый. */
-  maxTurns: number;
+  /** Лимит раундов (0 — без лимита). По достижении побеждает самый богатый. */
+  maxRounds: number;
   /** Лимит предложений сделки за один ход. */
   maxTradesPerTurn: number;
 }
@@ -131,6 +131,8 @@ export interface GameState {
   extraRoll: boolean;
   /** Сквозной счётчик ходов. */
   turn: number;
+  /** Номер раунда: растёт, когда очередь снова доходит до первого по порядку игрока. */
+  round: number;
   decks: Record<DeckId, number[]>;
   bank: { houses: number; hotels: number };
   auction: Auction | null;
@@ -193,7 +195,7 @@ export type GameEvent =
   | Ev<'tradeResolved', { offer: TradeOffer; result: 'accepted' | 'rejected' | 'cancelled' }>
   | Ev<'debt', { debtor: PlayerId; creditor: PlayerId | null; amount: number }>
   | Ev<'bankrupt', { player: PlayerId; creditor: PlayerId | null }>
-  | Ev<'gameOver', { winner: PlayerId | null; reason: 'lastStanding' | 'turnLimit' }>;
+  | Ev<'gameOver', { winner: PlayerId | null; reason: 'lastStanding' | 'roundLimit' }>;
 
 export type ActionResult = { ok: true; state: GameState; events: GameEvent[] } | { ok: false; error: string };
 

@@ -283,3 +283,23 @@ it('applyAction не мутирует исходное состояние', () =
   applyAction(s, { type: 'ROLL', player: 'p0' });
   expect(s).toEqual(copy);
 });
+
+describe('раунды', () => {
+  it('раунд растёт, когда очередь возвращается к первому игроку; лимит раундов завершает игру', () => {
+    let s = newGame(2);
+    s.settings.maxRounds = 2;
+    const finishTurn = (st: typeof s, id: string) => {
+      st = rollWith(st, 1, 2);
+      if (st.phase === 'buy') st = act(st, { type: 'BUY', player: id });
+      return act(st, { type: 'END_TURN', player: id });
+    };
+    s = finishTurn(s, 'p0');
+    expect(s.round).toBe(1);
+    s = finishTurn(s, 'p1');
+    expect(s.round).toBe(2);
+    s = finishTurn(s, 'p0');
+    s = finishTurn(s, 'p1');
+    expect(s.phase).toBe('gameOver');
+    expect(s.log.at(-1)).toMatchObject({ t: 'gameOver', reason: 'roundLimit' });
+  });
+});

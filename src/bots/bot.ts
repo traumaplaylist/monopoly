@@ -276,7 +276,7 @@ function manage(s: GameState, me: PlayerId, reserve: number, profile: BotProfile
   const build = bestBuild(s, me, p.cash - reserve);
   if (build !== null) return { type: 'BUILD', player: me, tile: build };
   // Сделка: каждый третий круг, чтобы не заваливать соперников предложениями.
-  const round = Math.floor((s.turn - 1) / s.players.length);
+  const round = s.round - 1;
   if (s.tradesThisTurn === 0 && round % 3 === 0 && s.phase === 'roll') {
     const trade = planTrade(s, me, profile);
     if (trade) return trade;

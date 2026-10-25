@@ -603,17 +603,19 @@ function bankrupt(ctx: Ctx, playerId: PlayerId, creditor: PlayerId | null): void
 function nextTurn(ctx: Ctx): void {
   const { s } = ctx;
   const next = seatOrderFrom(s, s.current + 1)[0]!;
-  s.current = s.players.indexOf(next);
+  const nextIndex = s.players.indexOf(next);
+  if (nextIndex <= s.current) s.round += 1;
+  s.current = nextIndex;
   s.phase = 'roll';
   s.doublesCount = 0;
   s.extraRoll = false;
   s.tradesThisTurn = 0;
   s.turn += 1;
-  if (s.settings.maxTurns > 0 && s.turn > s.settings.maxTurns) {
+  if (s.settings.maxRounds > 0 && s.round > s.settings.maxRounds) {
     const ranking = activePlayers(s).sort((a, b) => netWorth(s, b.id) - netWorth(s, a.id));
     s.phase = 'gameOver';
     s.winner = ranking[0]?.id ?? null;
-    emit(ctx, { t: 'gameOver', winner: s.winner, reason: 'turnLimit' });
+    emit(ctx, { t: 'gameOver', winner: s.winner, reason: 'roundLimit' });
     return;
   }
   emit(ctx, { t: 'turnStart', player: next.id, turn: s.turn });

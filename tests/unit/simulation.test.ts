@@ -7,7 +7,7 @@ function simulate(seed: number, players: number, maxActions = 30000): { state: G
   let s = createGame({
     seed,
     players: Array.from({ length: players }, (_, i) => ({ id: `b${i}`, name: `Бот ${i}`, isBot: true })),
-    settings: { maxTurns: 600 },
+    settings: { maxRounds: 150 },
   });
   let n = 0;
   while (s.phase !== 'gameOver' && n < maxActions) {

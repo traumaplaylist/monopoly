@@ -4,6 +4,9 @@ import { CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import type { Mesh } from 'three';
 import { useGame } from '../game/store';
 
+// Кубики — над колодами, в центре поля.
+const DICE_Z = -0.85;
+
 const PIPS: Record<number, [number, number][]> = {
   1: [[0.5, 0.5]],
   2: [
@@ -98,7 +101,7 @@ function Die({ value, x, seed }: { value: number; x: number; seed: number }) {
   });
 
   return (
-    <mesh ref={ref} position={[x, 0.45, 2.2]} rotation={[0, seed * 0.4, 0]} castShadow>
+    <mesh ref={ref} position={[x, 0.45, DICE_Z]} rotation={[0, seed * 0.4, 0]} castShadow>
       <boxGeometry args={[0.8, 0.8, 0.8]} />
     </mesh>
   );
@@ -108,8 +111,8 @@ export function Dice() {
   const dice = useGame((s) => s.state?.dice) ?? [5, 2];
   return (
     <group>
-      <Die value={dice[0]} x={-0.6} seed={1} />
-      <Die value={dice[1]} x={0.6} seed={-1} />
+      <Die value={dice[0]} x={-0.65} seed={1} />
+      <Die value={dice[1]} x={0.65} seed={-1} />
     </group>
   );
 }

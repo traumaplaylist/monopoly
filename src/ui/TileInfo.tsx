@@ -15,14 +15,11 @@ const KIND_LABEL: Record<string, string> = {
   goToJail: 'Санконтроль',
 };
 
-export function TileInfo() {
+export function TileInfo({ index: selected, onClose }: { index: number; onClose: () => void }) {
   const state = useGameState();
   const me = useMe();
   const ready = useMyTurnReady();
-  const selected = useGame((s) => s.selectedTile);
-  const selectTile = useGame((s) => s.selectTile);
   const dispatch = useGame((s) => s.dispatch);
-  if (selected === null) return null;
   const t = tile(selected);
   const o = state.ownership[selected];
   const group = t.group ? GROUPS[t.group] : null;
@@ -37,7 +34,7 @@ export function TileInfo() {
     <div className="tile-info" data-testid="tile-info">
       <div className={`tile-head ${group ? '' : 'plain'}`} style={{ background: group?.color ?? '#2a3a6a' }}>
         <span>{t.name}</span>
-        <button className="close" onClick={() => selectTile(null)} aria-label="Закрыть">
+        <button className="close" onClick={onClose} aria-label="Закрыть">
           ×
         </button>
       </div>
