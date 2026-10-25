@@ -215,10 +215,14 @@ export function chooseBotAction(s: GameState, me: PlayerId, profile: BotProfile 
     }
     case 'auction': {
       const au = s.auction!;
-      const value = tileValueFor(s, me, au.tile) * profile.greed;
+      const t = tile(au.tile);
+      // Клетка стратегическая, если остальная группа у одного владельца (себе — собрать, сопернику — помешать).
+      const rest = t.group ? GROUPS[t.group].tiles.filter((i) => i !== au.tile).map((i) => s.ownership[i]?.owner) : [];
+      const strategic = rest.length > 0 && !!rest[0] && rest.every((o) => o === rest[0]);
+      const value = Math.min(tileValueFor(s, me, au.tile) * profile.greed, strategic ? Infinity : t.price! * 1.25);
       const cap = Math.min(value, p.cash - Math.round(reserve * 0.5));
       const step = au.highBid < 100 ? 10 : au.highBid < 300 ? 20 : 50;
-      const price = tile(au.tile).price!;
+      const price = t.price!;
       // Сразу открываемся с половины номинала, чтобы не тянуть торги по 10.
       const opening = Math.ceil((price * 0.5) / 10) * 10;
       const bid = Math.max(au.highBid + 1, Math.ceil((au.highBid + step) / step) * step, au.highBid < opening ? opening : 0);
