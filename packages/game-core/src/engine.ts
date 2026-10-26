@@ -34,7 +34,6 @@ import type {
   MatchState,
   MinigameKind,
   MoneyReason,
-  Obligation,
   Phase,
   PlayerState,
   Result,

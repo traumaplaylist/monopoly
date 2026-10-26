@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RULESET } from '@pb/content';
 import { advance, applyCommand, liquidationValue, nextDeadline, publicView, rentFor } from '../src';
+import type { Command } from '../src';
 import { T0, act, cash, fail, finishTurn, giveTiles, newMatch, p, rollWith } from './helpers';
 
 describe('ход и движение', () => {
@@ -212,7 +213,7 @@ describe('сделки', () => {
 
   it('не больше двух предложений за ход; таймаут закрывает предложение', () => {
     let s = giveTiles(newMatch(), 's1', 3);
-    const offer = { type: 'PROPOSE_TRADE', to: 's1', give: { cash: 10, tiles: [] }, get: { cash: 0, tiles: [3] } } as const;
+    const offer: Command = { type: 'PROPOSE_TRADE', to: 's1', give: { cash: 10, tiles: [] }, get: { cash: 0, tiles: [3] } };
     s = act(s, 's0', offer);
     s = advance(s, s.deadline!)!.state;
     expect(s.phase).toBe('PRE_ROLL');
