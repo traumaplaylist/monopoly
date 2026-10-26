@@ -154,6 +154,7 @@ export function createGameServer(config: ServerConfig, clock: Clock): GameServer
     on(EV.cmd, MatchCommandSchema, (data, g) => service.command(g, data));
     on(EV.sync, null, (_d, g) => ({ ok: true, snapshot: service.snapshot(g) }));
     on(EV.ping, null, () => ({ ok: true, serverTime: clock.now() }));
+    if (config.devMode) on<{ op: string }>('dev:cheat', null, (d, g) => service.devCheat(g, String(d?.op ?? '')));
 
     socket.on('disconnect', () => {
       sockets.delete(socket.id);

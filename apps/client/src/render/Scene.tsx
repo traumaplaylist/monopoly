@@ -1,85 +1,99 @@
-import { OrbitControls } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
-import { useEffect } from 'react';
-import { PCFShadowMap, PerspectiveCamera, Vector3 } from 'three';
+import { useEffect, useMemo, useState } from 'react';
+import { PCFShadowMap, Vector3 } from 'three';
+import type { OrthographicCamera } from 'three';
 import { Board } from './Board';
 import { AnchorTracker } from './BoardAnchor';
-import { Buildings } from './Buildings';
 import { Dice } from './Dice';
+import { Pieces } from './Pieces';
 import { Tokens } from './Tokens';
-import { BOARD_H, BOARD_W } from './layout';
+import { PROFILES, pickProfile } from './layout';
+import type { Profile } from './layout';
 
-const FOV = 30;
-/** Наклон камеры от вертикали: почти вид сверху, как на макете. */
-const TILT = 0.4;
+/** Nearly top-down view with a small tilt (radians from vertical). */
+const TILT = 0.42;
+const CAM_DIST = 40;
 
-/** Подбирает дистанцию, при которой все углы поля попадают в кадр (с отступом). */
-function fitDistance(aspect: number): number {
-  const cam = new PerspectiveCamera(FOV, aspect, 0.1, 500);
-  const corners = [
-    [-1, -1],
-    [1, -1],
-    [1, 1],
-    [-1, 1],
-  ].map(([sx, sz]) => new Vector3(((sx! * BOARD_W) / 2) * 1.04, 0.3, ((sz! * BOARD_H) / 2) * 1.06));
-  const fits = (d: number) => {
-    cam.position.set(0, d * Math.cos(TILT), d * Math.sin(TILT));
-    cam.lookAt(0, 0, 0);
-    cam.updateMatrixWorld();
-    return corners.every((c) => {
-      const p = c.clone().project(cam);
-      return Math.abs(p.x) <= 0.98 && Math.abs(p.y) <= 0.96;
-    });
-  };
-  let lo = 5;
-  let hi = 120;
-  for (let k = 0; k < 30; k++) {
-    const mid = (lo + hi) / 2;
-    if (fits(mid)) hi = mid;
-    else lo = mid;
-  }
-  return hi;
-}
-
-function CameraRig() {
+/** Orthographic fit: all four corners visible without zoom. */
+function CameraRig({ profile }: { profile: Profile }) {
   const { camera, size } = useThree();
   useEffect(() => {
-    const d = fitDistance(size.width / Math.max(1, size.height));
-    camera.position.set(0, d * Math.cos(TILT), d * Math.sin(TILT));
-    camera.lookAt(0, 0, 0);
-  }, [camera, size.width, size.height]);
+    const cam = camera as OrthographicCamera;
+    cam.position.set(0, CAM_DIST * Math.cos(TILT), CAM_DIST * Math.sin(TILT));
+    cam.lookAt(0, 0, 0);
+    cam.updateMatrixWorld();
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    const m = profile.id === 'portrait' ? 0.15 : 0.35;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (const y of [0, 0.9]) {
+      const p = new Vector3(sx * (profile.width / 2 + m), y, sz * (profile.height / 2 + m)).applyMatrix4(cam.matrixWorldInverse);
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    }
+    cam.left = -size.width / 2;
+    cam.right = size.width / 2;
+    cam.top = size.height / 2;
+    cam.bottom = -size.height / 2;
+    cam.zoom = Math.min(size.width / (maxX - minX), size.height / (maxY - minY));
+    // Centre the board's projected bounding box.
+    const cy = (minY + maxY) / 2;
+    cam.position.y += cy * Math.sin(TILT);
+    cam.position.z -= cy * Math.cos(TILT);
+    cam.updateProjectionMatrix();
+  }, [camera, size.width, size.height, profile]);
   return null;
 }
 
-export function Scene() {
+function SceneContent() {
+  const { size } = useThree();
+  const profile = PROFILES[pickProfile(size.width, size.height)];
   return (
-    <Canvas
-      shadows={{ type: PCFShadowMap }}
-      dpr={[1, 2]}
-      camera={{ fov: FOV, position: [0, 20, 10], near: 0.1, far: 400 }}
-      gl={{ antialias: true }}
-    >
-      <color attach="background" args={['#1c1630']} />
-      <fog attach="fog" args={['#1c1630', 30, 70]} />
-      <CameraRig />
-      <hemisphereLight args={['#fff4e0', '#3a2f55', 0.9]} />
+    <>
+      <CameraRig profile={profile} />
+      <AnchorTracker profile={profile} />
+      <hemisphereLight args={['#fff4e6', '#4a3a5e', 1.1]} />
       <directionalLight
-        position={[-8, 18, 10]}
-        intensity={2.2}
+        position={[-6, 14, 8]}
+        intensity={1.8}
         castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-14}
-        shadow-camera-right={14}
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
         shadow-camera-top={10}
         shadow-camera-bottom={-10}
-        shadow-bias={-0.0005}
+        shadow-bias={-0.0006}
       />
-      <Board />
-      <Buildings />
-      <Tokens />
-      <Dice />
-      <AnchorTracker />
-      <OrbitControls enablePan={false} minDistance={6} maxDistance={70} minPolarAngle={0} maxPolarAngle={1.15} makeDefault />
+      <Board profile={profile} />
+      <Pieces profile={profile} />
+      <Tokens profile={profile} />
+      <Dice profile={profile} />
+    </>
+  );
+}
+
+export function webglAvailable(): boolean {
+  try {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch {
+    return false;
+  }
+}
+
+export function Scene() {
+  const [ok] = useState(webglAvailable);
+  const dpr = useMemo<[number, number]>(() => [1, Math.min(2, window.devicePixelRatio || 1)], []);
+  if (!ok) {
+    return (
+      <div className="webgl-missing">
+        <b>3D-поле недоступно</b>
+        <span>Браузер не поддерживает WebGL или он отключён. Включите аппаратное ускорение или откройте игру в Chrome.</span>
+      </div>
+    );
+  }
+  return (
+    <Canvas orthographic shadows={{ type: PCFShadowMap }} dpr={dpr} camera={{ position: [0, 30, 15], near: 0.1, far: 200, zoom: 40 }} gl={{ antialias: true }}>
+      <color attach="background" args={['#3b3346']} />
+      <SceneContent />
     </Canvas>
   );
 }

@@ -2,10 +2,10 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import type { Mesh } from 'three';
-import { useGame } from '../game/store';
-
-// Кубики — над колодами, в центре поля.
-const DICE_Z = -0.85;
+import { useStore } from '../state/store';
+import { centerLayout } from './layout';
+import type { Profile } from './layout';
+import { playSound } from '../ui/sound';
 
 const PIPS: Record<number, [number, number][]> = {
   1: [[0.5, 0.5]],
@@ -64,18 +64,20 @@ function facesFor(v: number): number[] {
   return [side[0]!, 7 - side[0]!, v, 7 - v, side[1]!, 7 - side[1]!];
 }
 
-function Die({ value, x, seed }: { value: number; x: number; seed: number }) {
+function Die({ value, x, z, seed }: { value: number; x: number; z: number; seed: number }) {
   const ref = useRef<Mesh>(null);
   const mats = useMemo(
     () => [1, 2, 3, 4, 5, 6].map((v) => new MeshStandardMaterial({ map: faceTexture(v), roughness: 0.35 })),
     [],
   );
   const spin = useRef(0);
-  const rollSeq = useGame((s) => s.rollSeq);
+  const rollSeq = useStore((s) => s.rollSeq);
+  const reduce = useStore((s) => s.prefs.reduceMotion);
 
   useEffect(() => {
-    if (rollSeq > 0) spin.current = 0.9;
-  }, [rollSeq]);
+    if (rollSeq > 0 && !reduce) spin.current = 0.9;
+    if (rollSeq > 0 && seed > 0) playSound('dice');
+  }, [rollSeq, reduce, seed]);
 
   useEffect(() => {
     const m = ref.current;
@@ -101,18 +103,19 @@ function Die({ value, x, seed }: { value: number; x: number; seed: number }) {
   });
 
   return (
-    <mesh ref={ref} position={[x, 0.45, DICE_Z]} rotation={[0, seed * 0.4, 0]} castShadow>
-      <boxGeometry args={[0.8, 0.8, 0.8]} />
+    <mesh ref={ref} position={[x, 0.45, z]} rotation={[0, seed * 0.4, 0]} castShadow>
+      <boxGeometry args={[0.72, 0.72, 0.72]} />
     </mesh>
   );
 }
 
-export function Dice() {
-  const dice = useGame((s) => s.state?.dice) ?? [5, 2];
+export function Dice({ profile }: { profile: Profile }) {
+  const dice = useStore((s) => s.match?.turn.dice) ?? [5, 2];
+  const c = centerLayout(profile).dice;
   return (
     <group>
-      <Die value={dice[0]} x={-0.65} seed={1} />
-      <Die value={dice[1]} x={0.65} seed={-1} />
+      <Die value={dice[0]} x={c.x - 0.6} z={c.z} seed={1} />
+      <Die value={dice[1]} x={c.x + 0.6} z={c.z} seed={-1} />
     </group>
   );
 }

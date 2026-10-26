@@ -520,6 +520,60 @@ export class RoomService {
     this.rooms.clear();
   }
 
+  /** DEV ONLY (PB_DEV=1): shortcuts for manual QA and screenshots. Disabled in production. */
+  devCheat(guestId: string, op: string): void {
+    if (!this.config.devMode) throw new ServiceError('notAllowed');
+    const rt = this.roomOfGuest(guestId);
+    const m = rt?.rec.match;
+    if (!rt || !m) throw new ServiceError('noMatch');
+    const seat = this.seatOf(rt.rec, guestId)!.seat;
+    const s = structuredClone(m);
+    const me = s.players.find((p) => p.seat === seat)!;
+    switch (op) {
+      case 'cash':
+        me.cash += 2000;
+        break;
+      case 'set': {
+        // Give me the cheapest free full group.
+        for (const g of [[1, 3], [5, 7], [27, 28], [30, 31]]) {
+          if (g.every((i) => s.tiles[i]!.owner === null || s.tiles[i]!.owner === seat)) {
+            for (const i of g) s.tiles[i] = { owner: seat, level: 0, mortgaged: false };
+            break;
+          }
+        }
+        break;
+      }
+      case 'ghost':
+        for (const o of s.tiles) if (o?.owner === seat) Object.assign(o, { owner: null, level: 0, mortgaged: false });
+        Object.assign(me, { role: 'ghost', cash: 0, items: [], ghostEnergy: 1, ghostPrankRound: 0 });
+        break;
+      case 'minigame':
+        s.minigameRequested = true;
+        break;
+      case 'endSoon':
+        s.settings.maxRounds = s.round;
+        break;
+      case 'skip':
+        if (s.deadline !== null) s.deadline = this.clock.now();
+        if (s.minigame) {
+          const now = this.clock.now();
+          const mg = s.minigame;
+          mg.stageEndsAt = now;
+          if (mg.game.kind === 'reaction' && mg.stage === 'play') mg.game.playEnd = now;
+          if (mg.game.kind === 'memory' && mg.stage === 'play') {
+            const r = mg.game.rounds[mg.game.round]!;
+            r.showEnd = Math.min(r.showEnd, now);
+            r.inputEnd = now;
+          }
+        }
+        break;
+      default:
+        throw new ServiceError('badRequest');
+    }
+    s.revision += 1;
+    this.applyMatch(rt, s, []);
+  }
+
   // ------------------------------------------------------------- views
 
   roomPublic(rec: RoomRecord): RoomPublic {

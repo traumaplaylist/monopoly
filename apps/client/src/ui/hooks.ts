@@ -1,29 +1,46 @@
-import { useMemo } from 'react';
-import { getActor, validate } from '../engine';
-import type { Action, GameState } from '../engine';
-import { isAnimating, useGame } from '../game/store';
+import { useEffect, useState } from 'react';
+import { MEGAPOLIS, RULESET } from '@pb/content';
+import { actingSeats, currentSeat as coreCurrentSeat } from '@pb/game-core';
+import type { MatchState, PublicMatch, PublicPlayer } from '@pb/game-core';
+import { serverNow, useStore } from '../state/store';
 
-/** Допустимо ли действие — решает только движок. */
-export function canDo(state: GameState | null, action: Action): boolean {
-  return !!state && validate(state, action) === null;
+/** Server-synchronised clock that re-renders every 250 ms. */
+export function useNow(active = true): number {
+  const [now, setNow] = useState(serverNow);
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => setNow(serverNow()), 250);
+    return () => clearInterval(t);
+  }, [active]);
+  return now;
 }
 
-export function useGameState(): GameState {
-  const s = useGame((x) => x.state);
-  if (!s) throw new Error('Нет активной партии');
-  return s;
+export function useMatch(): PublicMatch {
+  const m = useStore((s) => s.match);
+  if (!m) throw new Error('no match');
+  return m;
 }
 
-export function useMe() {
-  const state = useGameState();
-  const id = useGame((x) => x.localPlayerId);
-  return state.players.find((p) => p.id === id)!;
+export function useMe(): PublicPlayer | null {
+  const seat = useStore((s) => s.seat);
+  const m = useStore((s) => s.match);
+  return m?.players.find((p) => p.seat === seat) ?? null;
 }
 
-/** Ход локального игрока и фишки уже доехали. */
-export function useMyTurnReady(): boolean {
-  const state = useGameState();
-  const id = useGame((x) => x.localPlayerId);
-  const moves = useGame((x) => x.moves);
-  return useMemo(() => getActor(state) === id && !isAnimating(moves), [state, id, moves]);
+export function currentSeat(m: PublicMatch): string {
+  return coreCurrentSeat(m as unknown as MatchState);
 }
+
+export function acting(m: PublicMatch): string[] {
+  return actingSeats(m as unknown as MatchState);
+}
+
+export function isMyTurn(m: PublicMatch, seat: string | null): boolean {
+  return !!seat && currentSeat(m) === seat;
+}
+
+export function tileDef(i: number) {
+  return MEGAPOLIS.tiles[i]!;
+}
+
+export { RULESET };

@@ -1,7 +1,7 @@
 // Подключаемая графика. Художник кладёт файлы в public/ и прописывает их в public/assets.json:
-//   models  — glTF-модели (.glb) для слотов: token, ghost, house, hotel, decor-rock, decor-crystal, deck
+//   models  — glTF-модели (.glb) для слотов: token, ghost, upgrade1, upgrade2, upgrade3, cone, tree, deck
 //   icons   — картинки иконок клеток по номеру клетки: { "1": "icons/crater.png" }
-//   avatars — портреты игроков по номеру фишки 0..5: { "0": "avatars/0.png" }
+//   avatars — портреты игроков по номеру персонажа 0..5: { "0": "avatars/0.png" }
 // Если файла нет — рисуется встроенная заглушка. Подробно — docs/ASSETS.md.
 import { useGLTF } from '@react-three/drei';
 import { Component, Suspense, useEffect, useMemo, useState } from 'react';
@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 import { Color, Mesh, MeshStandardMaterial } from 'three';
 import type { Object3D } from 'three';
 
-export type ModelSlot = 'token' | 'ghost' | 'house' | 'hotel' | 'decor-rock' | 'decor-crystal' | 'deck';
+export type ModelSlot = 'token' | 'ghost' | 'upgrade1' | 'upgrade2' | 'upgrade3' | 'cone' | 'tree' | 'deck';
 
 export interface AssetManifest {
   models: Partial<Record<ModelSlot, string>>;

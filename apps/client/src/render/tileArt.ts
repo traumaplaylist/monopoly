@@ -1,243 +1,171 @@
-// Оформление клеток: иконки, цвета и рисование верхней грани блока на canvas.
-// Иконки-эмодзи — временные; картинки из public/assets.json (icons) их заменяют.
+// Top faces of tile blocks, drawn on canvas (crisp Cyrillic, no font downloads).
+// Icons are emoji placeholders keyed by the tile's visual key; PNG icons from assets.json replace them.
 import { CanvasTexture, SRGBColorSpace } from 'three';
-import { GROUPS, tile } from '../engine';
-import type { TileDef } from '../engine';
+import { GROUPS, MEGAPOLIS } from '@pb/content';
+import type { TileDef } from '@pb/content';
 import { STRIP, tileRect } from './layout';
+import type { Profile } from './layout';
 
 export const UI_FONT = 'Rubik, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 const EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
 
-export const TILE_ICONS: Record<number, string> = {
-  0: '🚀',
-  1: '🌑',
-  2: '✦',
-  3: '⛰️',
-  4: '💨',
-  5: '🗼',
-  6: '🧊',
-  7: '?',
-  8: '❄️',
-  9: '🌌',
-  10: '☣️',
-  11: '🏜️',
-  12: '☀️',
-  13: '🏔️',
-  14: '🏛️',
-  15: '🛸',
-  16: '⛏️',
-  17: '✦',
-  18: '☄️',
-  19: '🏰',
-  20: '☕',
-  21: '☁️',
-  22: '?',
-  23: '⚓',
-  24: '🎡',
-  25: '🛰️',
-  26: '🌊',
-  27: '🌋',
-  28: '💧',
-  29: '🏙️',
-  30: '🚨',
-  31: '🪐',
-  32: '🏗️',
-  33: '✦',
-  34: '🌿',
-  35: '🌀',
-  36: '?',
-  37: '🏨',
-  38: '💸',
-  39: '👑',
+export const VISUAL_ICONS: Record<string, string> = {
+  flag: '🏁', cup: '☕', question: '?', bread: '🥐', receipt: '🧾', gamepad: '🎮', film: '🎬', gavel: '🔨',
+  bed: '🛏️', disco: '🪩', palette: '🎨', stall: '🏪', cross: '➕', basket: '🛒', coffee: '☕', columns: '🏛️',
+  swords: '⚔️', frame: '🖼️', masks: '🎭', tree: '🌳', book: '📚', car: '🚗', cap: '🎓', anchor: '⚓',
+  train: '🚆', note: '🎵', tower: '🏙️',
 };
 
 export const PALETTE = {
-  paper: '#f6ecd8',
-  paperShade: '#d8c39e',
+  paper: '#f4ead6',
+  paperShade: '#d9c6a2',
   ink: '#2b2236',
-  muted: '#7a6a5a',
   coin: '#f4b81c',
-  signal: '#ef7a3b',
-  council: '#3a72c2',
-  tax: '#d9474b',
-  corner: { 0: '#d9c9f2', 10: '#f2a679', 20: '#b49be8', 30: '#a7b6cc' } as Record<number, string>,
+  chance: '#e8743a',
+  tax: '#d6474c',
+  minigame: '#3a6fc4',
+  duel: '#d6474c',
+  corner: { start: '#dccff3', auction: '#f0a36d', pause: '#b49be8', parking: '#b8c2d0' } as Record<string, string>,
 };
 
-const PX = 180; // пикселей на единицу мира
+const PX = 170;
 
-/** Цвет «бумаги» клетки (для боковых граней блока). */
-export function tileBaseColor(t: TileDef): string {
-  if (t.index in PALETTE.corner) return PALETTE.corner[t.index]!;
-  if (t.kind === 'card') return t.deck === 'signal' ? PALETTE.signal : PALETTE.council;
-  return PALETTE.paperShade;
+export function specialColor(t: TileDef): string | null {
+  if (t.group) return GROUPS[t.group].color;
+  if (t.kind === 'chance') return PALETTE.chance;
+  if (t.kind === 'tax') return PALETTE.tax;
+  if (t.kind === 'minigame') return PALETTE.minigame;
+  if (t.kind === 'duel') return PALETTE.duel;
+  return null;
 }
 
-function fit(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number, base: number, weight = 700) {
-  for (let size = base; size > base * 0.45; size *= 0.94) {
+export function sideColor(t: TileDef): string {
+  return PALETTE.corner[t.kind] ?? PALETTE.paperShade;
+}
+
+function fit(ctx: CanvasRenderingContext2D, text: string, maxW: number, base: number, weight = 700): number {
+  let size = base;
+  for (; size > base * 0.5; size *= 0.94) {
     ctx.font = `${weight} ${size}px ${UI_FONT}`;
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let line = '';
-    for (const w of words) {
-      const test = line ? `${line} ${w}` : w;
-      if (ctx.measureText(test).width > maxW && line) {
-        lines.push(line);
-        line = w;
-      } else line = test;
-    }
-    if (line) lines.push(line);
-    if (lines.length <= maxLines && lines.every((l) => ctx.measureText(l).width <= maxW)) return { lines, size };
+    if (ctx.measureText(text).width <= maxW) break;
   }
-  ctx.font = `${weight} ${base * 0.45}px ${UI_FONT}`;
-  return { lines: [text], size: base * 0.45 };
+  ctx.font = `${weight} ${size}px ${UI_FONT}`;
+  return size;
 }
 
-function drawCoinPrice(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number,
-  value: string,
-  align: 'center' | 'left',
-) {
+function coinPrice(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, value: string): void {
   ctx.font = `700 ${size}px ${UI_FONT}`;
   const tw = ctx.measureText(value).width;
   const r = size * 0.42;
-  const total = r * 2 + size * 0.25 + tw;
-  const x0 = align === 'center' ? x - total / 2 : x;
+  const x0 = cx - (r * 2 + size * 0.22 + tw) / 2;
   ctx.fillStyle = PALETTE.coin;
   ctx.beginPath();
-  ctx.arc(x0 + r, y, r, 0, Math.PI * 2);
+  ctx.arc(x0 + r, cy, r, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = '#b07a00';
-  ctx.lineWidth = size * 0.08;
+  ctx.strokeStyle = '#a06e00';
+  ctx.lineWidth = size * 0.09;
   ctx.stroke();
   ctx.fillStyle = PALETTE.ink;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText(value, x0 + r * 2 + size * 0.25, y + size * 0.04);
+  ctx.fillText(value, x0 + r * 2 + size * 0.22, cy + size * 0.04);
 }
 
-function drawIcon(ctx: CanvasRenderingContext2D, t: TileDef, cx: number, cy: number, size: number, img: HTMLImageElement | null) {
+function icon(ctx: CanvasRenderingContext2D, t: TileDef, cx: number, cy: number, size: number, img: HTMLImageElement | null, light: boolean): void {
   if (img) {
     ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
     return;
   }
-  const icon = TILE_ICONS[t.index] ?? '';
+  const e = VISUAL_ICONS[t.visual] ?? '•';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  if (icon === '?' || icon === '✦') {
-    ctx.fillStyle = '#fff';
-    ctx.font = `900 ${size * 1.05}px ${UI_FONT}`;
-    ctx.fillText(icon, cx, cy + size * 0.05);
-    return;
+  if (e === '?') {
+    ctx.fillStyle = light ? '#fff' : PALETTE.ink;
+    ctx.font = `900 ${size * 1.1}px ${UI_FONT}`;
+  } else {
+    ctx.font = `${size * 0.82}px ${EMOJI_FONT}`;
   }
-  ctx.font = `${size * 0.85}px ${EMOJI_FONT}`;
-  ctx.fillText(icon, cx, cy + size * 0.05);
+  ctx.fillText(e, cx, cy + size * 0.06);
 }
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, r);
 }
 
-/** Текстура верхней грани клетки. Надписи всегда «к зрителю». */
-export function createTileTexture(index: number, img: HTMLImageElement | null): CanvasTexture {
-  const t = tile(index);
-  const r = tileRect(index);
+export function createTileTexture(index: number, p: Profile, img: HTMLImageElement | null): CanvasTexture {
+  const t = MEGAPOLIS.tiles[index]!;
+  const r = tileRect(index, p);
   const W = Math.round(r.w * PX);
   const H = Math.round(r.d * PX);
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
   const ctx = c.getContext('2d')!;
-  const pad = PX * 0.08;
-  const isCard = t.kind === 'card';
-  const label = t.name.toUpperCase();
-
+  const pad = PX * 0.07;
+  const label = t.shortLabel.toUpperCase();
   ctx.fillStyle = PALETTE.paper;
   ctx.fillRect(0, 0, W, H);
 
   if (r.corner) {
-    ctx.fillStyle = PALETTE.corner[index]!;
-    roundRect(ctx, pad, pad, W - pad * 2, H - pad * 2, PX * 0.12);
+    ctx.fillStyle = PALETTE.corner[t.kind]!;
+    rr(ctx, pad, pad, W - pad * 2, H - pad * 2, PX * 0.12);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(43,34,54,0.25)';
-    ctx.lineWidth = PX * 0.03;
-    ctx.stroke();
-    drawIcon(ctx, t, W / 2, H * 0.38, PX * 0.62, img);
+    icon(ctx, t, W / 2, H * 0.38, Math.min(W, H) * 0.42, img, false);
     ctx.fillStyle = PALETTE.ink;
-    const f = fit(ctx, label, W - pad * 4, 1, PX * 0.26, 800);
+    fit(ctx, label, W - pad * 4, PX * 0.27, 800);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(f.lines[0]!, W / 2, H * 0.75);
+    ctx.fillText(label, W / 2, H * 0.76);
     return finish(c);
   }
 
-  // Полоса группы / цвет спецклетки — у внешнего края.
-  const stripPx = STRIP * PX;
-  const stripColor = t.group
-    ? GROUPS[t.group].color
-    : isCard
-      ? t.deck === 'signal'
-        ? PALETTE.signal
-        : PALETTE.council
-      : t.kind === 'tax'
-        ? PALETTE.tax
-        : null;
-  const horizontal = r.side === 0 || r.side === 2;
-  if (stripColor) {
-    ctx.fillStyle = stripColor;
-    if (r.side === 0) ctx.fillRect(0, 0, W, stripPx);
-    if (r.side === 2) ctx.fillRect(0, H - stripPx, W, stripPx);
-    if (r.side === 1) ctx.fillRect(W - stripPx, 0, stripPx, H);
-    if (r.side === 3) ctx.fillRect(0, 0, stripPx, H);
+  const color = specialColor(t);
+  const special = t.kind !== 'property';
+  const strip = STRIP * PX;
+  // Group colour strip at the outer edge (where upgrades stand).
+  if (color && !special) {
+    ctx.fillStyle = color;
+    if (r.side === 0) ctx.fillRect(0, 0, W, strip);
+    if (r.side === 2) ctx.fillRect(0, H - strip, W, strip);
+    if (r.side === 1) ctx.fillRect(W - strip, 0, strip, H);
+    if (r.side === 3) ctx.fillRect(0, 0, strip, H);
   }
-  // Карточки и налоги — крупная цветная плашка под иконкой, как на макете.
-  const iconBg = isCard || t.kind === 'tax' ? stripColor : null;
-
-  const price = t.price ? String(t.price) : t.tax ? `−${t.tax}` : '';
-  ctx.fillStyle = PALETTE.ink;
-
-  if (horizontal) {
-    const top = r.side === 0 ? stripPx : 0;
-    const bottom = r.side === 2 ? H - stripPx : H;
-    const h = bottom - top;
-    const iconSize = PX * 0.42;
-    const iconY = top + h * 0.26;
-    if (iconBg) {
-      ctx.fillStyle = iconBg;
-      roundRect(ctx, pad, top + pad * 0.6, W - pad * 2, h * 0.5, PX * 0.08);
-      ctx.fill();
-    }
-    drawIcon(ctx, t, W / 2, iconY, iconSize, img);
-    ctx.fillStyle = PALETTE.ink;
-    const f = fit(ctx, label, W - pad * 1.2, 2, PX * 0.19, 700);
+  const box = { x: 0, y: 0, w: W, h: H };
+  if (!special) {
+    if (r.side === 0) box.y = strip;
+    if (r.side === 0 || r.side === 2) box.h = H - strip;
+    if (r.side === 3) box.x = strip;
+    if (r.side === 1 || r.side === 3) box.w = W - strip;
+  }
+  if (special && color) {
+    // Special tiles: coloured plate with a light icon, as on the concept.
+    ctx.fillStyle = color;
+    rr(ctx, pad, pad, W - pad * 2, H - pad * 2, PX * 0.08);
+    ctx.fill();
+  }
+  const ink = special ? '#ffffff' : PALETTE.ink;
+  const price = t.price ? String(t.price) : '';
+  const portraitTile = box.h >= box.w * 0.95;
+  if (portraitTile) {
+    icon(ctx, t, box.x + box.w / 2, box.y + box.h * 0.32, Math.min(box.w, box.h) * 0.42, img, special);
+    ctx.fillStyle = ink;
+    const size = fit(ctx, label, box.w - pad * 1.5, PX * 0.19);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const nameY = top + h * (price ? 0.62 : 0.72);
-    f.lines.forEach((ln, k) => ctx.fillText(ln, W / 2, nameY + (k - (f.lines.length - 1) / 2) * f.size * 1.1));
-    if (price) drawCoinPrice(ctx, W / 2, top + h * 0.87, PX * 0.19, price, 'center');
+    ctx.fillText(label, box.x + box.w / 2, box.y + box.h * (price ? 0.64 : 0.74));
+    if (price) coinPrice(ctx, box.x + box.w / 2, box.y + box.h * 0.85, Math.min(size * 1.05, PX * 0.19), price);
   } else {
-    const left = r.side === 3 ? stripPx : 0;
-    const right = r.side === 1 ? W - stripPx : W;
-    const iconBox = (H - pad * 2) * 0.9;
-    if (iconBg) {
-      ctx.fillStyle = iconBg;
-      roundRect(ctx, left + pad * 0.6, pad, iconBox * 1.25, iconBox, PX * 0.08);
-      ctx.fill();
-    }
-    drawIcon(ctx, t, left + pad * 0.6 + iconBox * 0.62, H / 2, iconBox * 0.78, img);
-    const textX = left + pad * 0.6 + iconBox * 1.3;
-    const maxW = right - textX - pad;
-    ctx.fillStyle = PALETTE.ink;
-    const f = fit(ctx, label, maxW, 2, PX * 0.2, 700);
+    const iconSize = box.h * 0.62;
+    icon(ctx, t, box.x + pad + iconSize * 0.6, box.y + box.h / 2, iconSize, img, special);
+    const tx = box.x + pad * 1.5 + iconSize * 1.15;
+    const maxW = box.x + box.w - tx - pad;
+    ctx.fillStyle = ink;
+    const size = fit(ctx, label, maxW, PX * 0.2);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const cx = textX + maxW / 2;
-    const nameY = price ? H * 0.38 : H / 2;
-    f.lines.forEach((ln, k) => ctx.fillText(ln, cx, nameY + (k - (f.lines.length - 1) / 2) * f.size * 1.1));
-    if (price) drawCoinPrice(ctx, cx, H * 0.76, PX * 0.18, price, 'center');
+    ctx.fillText(label, tx + maxW / 2, box.y + box.h * (price ? 0.36 : 0.5));
+    if (price) coinPrice(ctx, tx + maxW / 2, box.y + box.h * 0.72, Math.min(size, PX * 0.19), price);
   }
   return finish(c);
 }
@@ -245,33 +173,64 @@ export function createTileTexture(index: number, img: HTMLImageElement | null): 
 function finish(c: HTMLCanvasElement): CanvasTexture {
   const tex = new CanvasTexture(c);
   tex.colorSpace = SRGBColorSpace;
-  tex.anisotropy = 8;
+  tex.anisotropy = 4;
   return tex;
 }
 
-/** Текстура верха колоды карточек в центре поля. */
-export function createDeckTexture(deck: 'signal' | 'council'): CanvasTexture {
-  const W = 2.4 * PX;
-  const H = 1.6 * PX;
+export function createDeckTexture(kind: 'chance' | 'minigame', w: number, d: number): CanvasTexture {
+  const W = Math.round(w * PX);
+  const H = Math.round(d * PX);
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
   const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#f6ecd8';
+  ctx.fillStyle = PALETTE.paper;
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = deck === 'signal' ? PALETTE.signal : PALETTE.council;
-  roundRect(ctx, PX * 0.1, PX * 0.1, W - PX * 0.2, H - PX * 0.2, PX * 0.1);
+  ctx.fillStyle = kind === 'chance' ? PALETTE.chance : PALETTE.minigame;
+  rr(ctx, PX * 0.1, PX * 0.1, W - PX * 0.2, H - PX * 0.2, PX * 0.1);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-  ctx.lineWidth = PX * 0.03;
-  roundRect(ctx, PX * 0.18, PX * 0.18, W - PX * 0.36, H - PX * 0.36, PX * 0.08);
-  ctx.stroke();
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `900 ${PX * 0.6}px ${UI_FONT}`;
-  ctx.fillText(deck === 'signal' ? '?' : '✦', W / 2, H * 0.4);
-  ctx.font = `800 ${PX * 0.2}px ${UI_FONT}`;
-  ctx.fillText(deck === 'signal' ? 'СИГНАЛ' : 'СОВЕТ КОЛОНИИ', W / 2, H * 0.76);
+  if (kind === 'chance') {
+    ctx.font = `900 ${H * 0.42}px ${UI_FONT}`;
+    ctx.fillText('?', W / 2, H * 0.4);
+  } else {
+    ctx.font = `${H * 0.34}px ${EMOJI_FONT}`;
+    ctx.fillText('🎮', W / 2, H * 0.4);
+  }
+  ctx.font = `800 ${H * 0.15}px ${UI_FONT}`;
+  ctx.fillText(kind === 'chance' ? 'ШАНС' : 'МИНИ-ИГРЫ', W / 2, H * 0.77);
+  return finish(c);
+}
+
+/** Calm city-map pattern for the board centre. */
+export function createCenterTexture(w: number, h: number): CanvasTexture {
+  const W = Math.round(w * 80);
+  const H = Math.round(h * 80);
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#2f6b6a';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 10;
+  let seed = 3;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let k = 0; k < 7; k++) {
+    ctx.beginPath();
+    const y = rnd() * H;
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y + (rnd() - 0.5) * H * 0.3);
+    ctx.stroke();
+    const x = rnd() * W;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + (rnd() - 0.5) * W * 0.3, H);
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.045)';
+  for (let k = 0; k < 40; k++) ctx.fillRect(rnd() * W, rnd() * H, 20 + rnd() * 40, 20 + rnd() * 40);
   return finish(c);
 }
