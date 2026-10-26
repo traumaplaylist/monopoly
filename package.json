@@ -1,36 +1,26 @@
 {
-  "name": "orbital-capital",
+  "name": "party-board",
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "engines": { "node": ">=22.13" },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit -p . && vite build",
-    "preview": "vite preview",
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "npm run dev -w @pb/server",
+    "dev:client": "npm run dev -w @pb/client",
+    "build": "npm run typecheck && npm run build -w @pb/client && npm run build -w @pb/server",
+    "start": "npm run start -w @pb/server",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
-    "test:watch": "vitest",
     "e2e": "playwright test",
-    "format": "prettier --write src tests"
-  },
-  "dependencies": {
-    "@fontsource/rubik": "^5.3.0",
-    "@react-three/drei": "^10.7.9",
-    "@react-three/fiber": "^9.8.2",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "three": "^0.186.1",
-    "zustand": "^5.0.16"
+    "format": "prettier --write packages apps/client/src apps/server/src tests"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "1.63.0",
     "@types/node": "^26.6.5",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@types/three": "^0.186.0",
-    "@vitejs/plugin-react": "^6.1.2",
+    "prettier": "^3.6.2",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5",
     "vitest": "^5.0.5"
   }
 }
