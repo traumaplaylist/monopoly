@@ -45,4 +45,4 @@ STATIC_DIR=apps/client/dist ALLOWED_ORIGINS=https://game.example.com npm start
 ## Документы
 **Начните с `PROGRESS.md`** (текущее состояние) и `CLAUDE.md` (правила работы).
 
-`docs/PRODUCT.md` · `docs/RULES_V1.md` · `docs/ARCHITECTURE.md` · `docs/DECISIONS.md` · `docs/ROADMAP.md` · `docs/VALIDATION.md` (создаётся по итогам E2E) · `docs/BUILD_MOBILE.md` · `docs/PLAYTEST.md` · `docs/CONTENT_BACKLOG.md` · `docs/ASSETS.md` · `docs/WORK_LOG.md`
+`docs/PRODUCT.md` · `docs/RULES_V1.md` · `docs/ARCHITECTURE.md` · `docs/DECISIONS.md` · `docs/ROADMAP.md` · `docs/VALIDATION.md` · `docs/BUILD_MOBILE.md` · `docs/PLAYTEST.md` · `docs/CONTENT_BACKLOG.md` · `docs/ASSETS.md` · `docs/WORK_LOG.md`

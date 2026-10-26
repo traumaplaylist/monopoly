@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Party Board</string>
+    <string name="title_activity_main">Party Board</string>
+    <string name="package_name">com.partyboard.megapolis</string>
+    <string name="custom_url_scheme">com.partyboard.megapolis</string>
+</resources>

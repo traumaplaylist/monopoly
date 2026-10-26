@@ -156,47 +156,57 @@ test('стол на четверых: лобби, ходы, мини-игры, �
   await expect(C.page.locator('[data-testid=conn-banner]')).toBeHidden({ timeout: 20_000 });
   expect((await st(C)).seat).toBe(seats[2]);
 
-  // --- First group mini-game (reaction) after round 2 ---
-  await playUntil(players, (s) => s.match!.phase === 'MINIGAME');
-  let s = await st(A);
-  expect(s.match!.minigame!.kind).toBe('reaction');
-  await shot(B, '10-minigame-intro-portrait');
-  for (const p of players) await clickIf(p, 'mg-ready');
-  await expect.poll(async () => (await st(A)).match!.minigame?.stage).toBe('play');
-  for (let i = 0; i < 12; i++) {
-    for (const p of [A, B]) {
-      const target = p.page.locator('.customer.on[data-target="1"]');
-      if (await target.count()) await target.first().dispatchEvent('pointerdown');
+  // --- Both group mini-games. The server may already have played one on its own timers while the
+  // slow test was busy, so accept whichever kind comes first and then request the other one. ---
+  async function playReaction() {
+    await shot(B, '10-minigame-intro-portrait');
+    for (const p of players) await clickIf(p, 'mg-ready');
+    await expect.poll(async () => (await st(A)).match!.minigame?.stage).toBe('play');
+    for (let i = 0; i < 12; i++) {
+      for (const p of [A, B]) {
+        const target = p.page.locator('.customer.on[data-target="1"]');
+        if (await target.count()) await target.first().dispatchEvent('pointerdown');
+      }
+      if (i === 6) await shot(A, '11-reaction-desktop');
+      await A.page.waitForTimeout(600);
     }
-    if (i === 6) await shot(A, '11-reaction-desktop');
-    await A.page.waitForTimeout(600);
-  }
-  await shot(B, '12-reaction-portrait');
-  await cheat(A, 'skip');
-  await expect.poll(async () => (await st(A)).match!.minigame?.stage).toBe('results');
-  await shot(A, '13-minigame-results');
-  await cheat(A, 'skip');
-
-  // --- Second mini-game (memory) ---
-  await cheat(A, 'minigame');
-  await playUntil(players, (x) => x.match!.phase === 'MINIGAME' && x.match!.minigame?.kind === 'memory');
-  for (const p of players) await clickIf(p, 'mg-ready');
-  await expect.poll(async () => (await st(A)).match!.minigame?.stage).toBe('play');
-  s = await st(A);
-  const seq = s.match!.minigame!.game.current!;
-  expect(seq.length).toBe(3);
-  await A.page.waitForTimeout(700);
-  await shot(B, '14-memory-show-portrait');
-  await expect.poll(async () => (await st(A)).match!.minigame!.game.current ?? null, { timeout: 10_000 }).toBeNull();
-  for (const stop of seq) await A.page.locator(`.stop[data-stop="${stop}"]`).dispatchEvent('pointerdown');
-  await shot(A, '15-memory-input-desktop');
-  await cheat(A, 'skip');
-  for (let i = 0; i < 6 && (await st(A)).match!.minigame?.stage === 'play'; i++) {
+    await shot(B, '12-reaction-portrait');
     await cheat(A, 'skip');
-    await A.page.waitForTimeout(300);
+    await expect.poll(async () => (await st(A)).match!.minigame?.stage).toBe('results');
+    await shot(A, '13-minigame-results');
+    await cheat(A, 'skip');
   }
-  await expect.poll(async () => (await st(A)).match!.minigame?.stage ?? 'done').toBe('results');
-  await cheat(A, 'skip');
+  async function playMemory() {
+    for (const p of players) await clickIf(p, 'mg-ready');
+    await expect.poll(async () => (await st(A)).match!.minigame?.stage).toBe('play');
+    const cur = await st(A);
+    const seq = cur.match!.minigame!.game.current!;
+    expect(seq.length).toBeGreaterThanOrEqual(3);
+    await A.page.waitForTimeout(700);
+    await shot(B, '14-memory-show-portrait');
+    await expect.poll(async () => (await st(A)).match!.minigame!.game.current ?? null, { timeout: 10_000 }).toBeNull();
+    for (const stop of seq) await A.page.locator(`.stop[data-stop="${stop}"]`).dispatchEvent('pointerdown');
+    await shot(A, '15-memory-input-desktop');
+    for (let i = 0; i < 8 && (await st(A)).match!.minigame?.stage === 'play'; i++) {
+      await cheat(A, 'skip');
+      await A.page.waitForTimeout(300);
+    }
+    await expect.poll(async () => (await st(A)).match!.minigame?.stage ?? 'done').toBe('results');
+    await cheat(A, 'skip');
+  }
+  const played = new Set<string>();
+  for (let k = 0; k < 4 && played.size < 2; k++) {
+    if (k > 0) await cheat(A, 'minigame');
+    let s0 = await playUntil(players, (x) => x.match!.phase === 'MINIGAME' && x.match!.minigame?.stage === 'intro' && !played.has(x.match!.minigame.kind));
+    const kind = s0.match!.minigame!.kind;
+    if (kind === 'reaction') await playReaction();
+    else await playMemory();
+    played.add(kind);
+    s0 = await st(A);
+    void s0;
+  }
+  expect([...played].sort()).toEqual(['memory', 'reaction']);
+  let s = await st(A);
 
   // --- Duel: the current player challenges an owner ---
   s = await playUntil(players, (x) => x.match!.phase === 'PRE_ROLL');

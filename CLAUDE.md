@@ -23,7 +23,7 @@
 - Клиент: React 19, Vite 8, three 0.186, @react-three/fiber 9, @react-three/drei 10, Zustand 5, socket.io-client 4, шрифт `@fontsource/rubik`.
 - Сервер: socket.io 4, встроенный `node:sqlite` (без нативных модулей), zod 4 (схемы в `packages/protocol`), tsx (dev), esbuild (сборка).
 - Тесты: Vitest 5 (ядро, сервер, раскладка), Playwright 1.63 (E2E; версия закреплена под браузер облачной среды).
-- Мобильная оболочка: Capacitor (конфигурация `apps/client/capacitor.config.json`; нативные проекты ещё не сгенерированы — см. PROGRESS.md).
+- Мобильная оболочка: Capacitor 8.5 (`apps/client/capacitor.config.json`, нативные проекты `apps/client/android`, `apps/client/ios`, плагин `@capacitor/app`).
 
 ## Структура
 ```

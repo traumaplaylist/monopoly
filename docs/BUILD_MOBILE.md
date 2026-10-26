@@ -4,18 +4,18 @@
 
 ## Что сделано
 - `apps/client/capacitor.config.json`: `appId com.partyboard.megapolis`, `webDir dist`, схема `https` на Android (origin `https://localhost`), без mixed content.
-- Нативные проекты сгенерированы командами Capacitor: `apps/client/android/` и `apps/client/ios/` (см. статус ниже).
-- Портретная ориентация закреплена в нативных проектах (Android Manifest, iOS Info.plist). В браузере ориентация не блокируется — вертикальная вёрстка работает сама.
+- Нативные проекты сгенерированы (Capacitor 8.5.3): `apps/client/android/` и `apps/client/ios/`. Скопированные web-ресурсы (`…/public`) в git не попадают — их кладёт `npx cap sync`.
+- Портретная ориентация: Android — `android:screenOrientation="portrait"` у `MainActivity` (на всех устройствах, включая планшеты); iPhone — только Portrait в `Info.plist`, iPad — все ориентации (на планшете в горизонтали работает ПК-раскладка). В браузере ориентация не блокируется — вертикальная вёрстка работает сама.
 - Safe areas: `viewport-fit=cover` + `env(safe-area-inset-*)` во всех экранах; высота — `100dvh` с запасным `100vh`.
-- Кнопка «назад» Android: закрывает открытую панель; на главном экране матча — системное поведение не перехватывается (`@capacitor/app`).
-- Жизненный цикл: при возврате из фона клиент отбрасывает устаревшие анимации и запрашивает авторитетный снимок (`visibilitychange`, работает и в WebView). Сервер в это время продолжает таймеры.
+- Кнопка «назад» Android (`apps/client/src/net/native.ts`, `@capacitor/app`): сначала отменяет режим установки ловушки, затем закрывает открытую панель, на верхнем уровне сворачивает приложение — партию не покидает.
+- Жизненный цикл: при возврате из фона (`appStateChange` в приложении, `visibilitychange` в браузере) клиент отбрасывает устаревшие анимации и запрашивает авторитетный снимок. Сервер в это время продолжает таймеры.
 - Сервер разрешает origin'ы WebView по умолчанию: `capacitor://localhost` (iOS), `https://localhost` (Android) — переменная `ALLOWED_ORIGINS`.
 
 ## Проверено в этом окружении (облачный Linux-контейнер)
 | Шаг | Результат |
 |---|---|
-| `npx cap add android` / `npx cap sync android` | см. `VALIDATION.md` |
-| Сборка APK (`gradlew assembleDebug`) | **не выполнена**: прокси окружения блокирует `dl.google.com` (403) — нельзя скачать Android SDK и Android Gradle Plugin. Java 21 и Gradle 8.14 есть. |
+| `npx cap add android` / `npx cap add ios` | ✅ проекты созданы |
+| Сборка APK (`gradlew assembleDebug`) | ❌ **не собрано**: запуск выполнен, Gradle упал на загрузке Android Gradle Plugin 8.13.0 с `dl.google.com` (403 от прокси окружения). Android SDK тоже недоступен. |
 | iOS | **не проверено**: нужен macOS + Xcode. |
 | Реальные телефоны | **не проверено**: только эмуляция размеров в Chromium. |
 
