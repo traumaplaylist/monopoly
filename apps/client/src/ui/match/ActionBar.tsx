@@ -173,13 +173,13 @@ export function ActionBar() {
         <button className={`btn primary main-btn ${primary.cmd ? '' : 'idle'}`} disabled={!primary.cmd || pending > 0} onClick={() => primary.cmd && send(primary.cmd)} data-testid={primary.testId}>
           <span className="die-ico">🎲</span> {primary.label}
         </button>
-        <button className="btn bar-btn" disabled={!canTrade} title={canTrade ? 'Предложить обмен' : 'Сделки — в спокойное окно своего хода (до 2 за ход)'} onClick={() => set({ sheet: { kind: 'trade' } })} data-testid="trade">
+        <button className="btn bar-btn" disabled={!canTrade} title={canTrade ? 'Предложить обмен' : 'Сделки — в спокойное окно своего хода (до 2 за ход)'} onClick={() => set({ sheet: { kind: 'trade' } })} data-testid="trade" aria-label="Сделка">
           🤝 <span>Сделка</span>
         </button>
-        <button className="btn bar-btn wide-only" onClick={() => set({ sheet: { kind: 'assets' } })} data-testid="assets">
+        <button className="btn bar-btn wide-only" onClick={() => set({ sheet: { kind: 'assets' } })} data-testid="assets" aria-label="Улучшить">
           🏠 <span>Улучшить</span>
         </button>
-        <button className="btn bar-btn" onClick={() => set({ sheet: { kind: 'menu' } })} data-testid="more">
+        <button className="btn bar-btn" onClick={() => set({ sheet: { kind: 'menu' } })} data-testid="more" aria-label="Ещё">
           ⋯ <span>Ещё</span>
         </button>
       </div>

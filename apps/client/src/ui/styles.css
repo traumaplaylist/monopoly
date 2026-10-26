@@ -132,7 +132,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
   height: 100vh;
   height: 100dvh;
   display: grid;
-  grid-template-columns: 1fr var(--side-w);
+  grid-template-columns: minmax(0, 1fr) var(--side-w);
   grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas: 'top top' 'stage side' 'bar bar';
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -282,7 +282,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 /* ---------- phone: portrait ---------- */
 @media (orientation: portrait), (max-width: 760px) {
   .match {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     grid-template-areas: 'top' 'side' 'stage' 'bar';
   }
@@ -300,7 +300,9 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
   .pghost { font-size: 0.7rem; }
   .pbars span { width: 9px; height: 6px; }
   .actionbar { flex-direction: column; gap: 6px; padding: 6px 8px 8px; }
-  .ab-row { display: flex; gap: 6px; }
+  .ab-row { display: flex; gap: 6px; min-width: 0; }
+  .ab-row > * { min-width: 0; }
+  .pcard { overflow: hidden; }
   .ab-info .tile-summary { display: flex; flex: 1; min-height: 52px; padding: 6px 8px; }
   .ts-icon { width: 34px; height: 34px; }
   .ts-text b { font-size: 0.95rem; }
@@ -317,9 +319,13 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
   .sheet { width: 100%; max-height: 82dvh; border-radius: 18px 18px 0 0; padding-bottom: env(safe-area-inset-bottom); }
   .seats { grid-template-columns: 1fr; }
 }
-@media (max-width: 380px) {
+@media (max-width: 400px) {
   .pcard .portrait { display: none; }
-  .items .slot:nth-child(3) { display: none; }
+  .slot { width: 40px; }
+  .slot.empty { display: none; }
+  .bar-btn span { display: none; }
+  .bar-btn { flex: 0 0 52px; font-size: 1.2rem; }
+  .duels { padding: 4px 6px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

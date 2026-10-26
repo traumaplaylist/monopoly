@@ -205,6 +205,8 @@ test('стол на четверых: лобби, ходы, мини-игры, �
   const seller = players.find((p) => p !== buyer)!;
   await cheat(seller, 'set');
   await cheat(buyer, 'cash');
+  const sellerSeat = seats[players.indexOf(seller)];
+  await expect.poll(async () => (await st(buyer)).match!.tiles.some((t) => t?.owner === sellerSeat)).toBe(true);
   await expect(buyer.page.locator('[data-testid=duel]')).toBeEnabled();
   await buyer.page.click('[data-testid=duel]');
   await expect(buyer.page.locator('[data-testid=duel-sheet]')).toBeVisible();

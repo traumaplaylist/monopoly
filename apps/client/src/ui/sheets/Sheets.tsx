@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GROUPS, MEGAPOLIS, RULESET, groupTiles } from '@pb/content';
 import { available, isTradeableTile, mortgageValue, ownedTiles, rentFor, unmortgageCost, upgradeCost } from '@pb/game-core';
 import type { Command, MatchState, PublicMatch, TradeSide } from '@pb/game-core';
@@ -251,9 +251,17 @@ function DuelSheet({ tile: preset }: { tile?: number }) {
     [m, me.seat],
   );
   const [tile, setTile] = useState<number | null>(preset !== undefined && eligible.includes(preset) ? preset : (eligible[0] ?? null));
+  // If the list arrives later or the tile changes, pick a tile and suggest prices from its price.
+  useEffect(() => {
+    if (tile === null && eligible.length) setTile(eligible[0]!);
+  }, [eligible, tile]);
   const base = tile !== null ? MEGAPOLIS.tiles[tile]!.price! : 0;
-  const [low, setLow] = useState(Math.round(base * 1.2));
-  const [high, setHigh] = useState(Math.round(base * 1.8));
+  const [low, setLow] = useState(0);
+  const [high, setHigh] = useState(0);
+  useEffect(() => {
+    setLow(Math.round((base * 1.2) / 10) * 10);
+    setHigh(Math.round((base * 1.8) / 10) * 10);
+  }, [base]);
   const free = available(S(m), me.seat);
   const owner = tile !== null ? m.tiles[tile]!.owner! : null;
   const paired = owner ? m.duelPairsThisRound.includes([me.seat, owner].sort().join('|')) : false;
