@@ -6,7 +6,7 @@ import { T0, act, cash, fail, finishTurn, giveTiles, newMatch, p, rollWith } fro
 
 describe('ход и движение', () => {
   it('бросок двигает фишку, свободный объект предлагается к покупке', () => {
-    let s = rollWith(newMatch(), 1, 2); // 3 = Пекарня
+    let s = rollWith(newMatch(), 1, 2); // 3 = Луксор
     expect(p(s, 's0').position).toBe(3);
     expect(s.phase).toBe('PURCHASE');
     expect(s.deadline).toBe(T0 + RULESET.purchaseMs);
@@ -14,8 +14,8 @@ describe('ход и движение', () => {
 
   it('зарплата ровно один раз за пересечение «Старта» и за попадание на него', () => {
     let s = newMatch();
-    s.players[0]!.position = 30;
-    s = rollWith(s, 1, 1); // 32 → 0 (Старт)
+    s.players[0]!.position = 38;
+    s = rollWith(s, 1, 1); // 40 → 0 (Старт)
     expect(p(s, 's0').position).toBe(0);
     expect(cash(s, 's0')).toBe(1700);
     expect(s.log.filter((e) => e.t === 'money' && e.reason === 'salary')).toHaveLength(1);
@@ -55,7 +55,7 @@ describe('покупка и аренда', () => {
     let s = rollWith(newMatch(), 1, 2);
     s = act(s, 's0', { type: 'BUY' });
     expect(s.tiles[3]!.owner).toBe('s0');
-    expect(cash(s, 's0')).toBe(1380);
+    expect(cash(s, 's0')).toBe(1400); // Луксор 100
     expect(s.phase).toBe('POST_ROLL');
     let poor = rollWith(newMatch(), 1, 2);
     poor.players[0]!.cash = 50;
@@ -63,9 +63,10 @@ describe('покупка и аренда', () => {
   });
 
   it('аренда, удвоение комплекта, уровни ×3/×6/×10, залог = 0', () => {
-    let s = giveTiles(newMatch(), 's1', 1);
+    // Египет: 1, 3, 5 — комплект из трёх городов.
+    let s = giveTiles(newMatch(), 's1', 1, 3);
     expect(rentFor(s, 1)).toBe(10);
-    s = giveTiles(s, 's1', 3);
+    s = giveTiles(s, 's1', 5);
     expect(rentFor(s, 1)).toBe(20);
     for (const [lvl, mult] of [
       [1, 3],
@@ -85,32 +86,30 @@ describe('покупка и аренда', () => {
     let s = giveTiles(newMatch(), 's1', 3);
     s.players[0]!.items = [];
     s = rollWith(s, 1, 2);
-    expect(cash(s, 's0')).toBe(1488);
-    expect(cash(s, 's1')).toBe(1512);
+    expect(cash(s, 's0')).toBe(1490);
+    expect(cash(s, 's1')).toBe(1510);
   });
 });
 
 describe('улучшения и залог', () => {
   it('равномерная стройка и продажа, запрет без полного комплекта', () => {
-    let s = giveTiles(newMatch(), 's0', 1);
+    let s = giveTiles(newMatch(), 's0', 1, 3);
     expect(fail(s, 's0', { type: 'UPGRADE', tile: 1 })).toBe('needFullGroup');
-    s = giveTiles(s, 's0', 3);
+    s = giveTiles(s, 's0', 5);
     s = act(s, 's0', { type: 'UPGRADE', tile: 1 });
     expect(fail(s, 's0', { type: 'UPGRADE', tile: 1 })).toBe('buildEvenly');
     s = act(s, 's0', { type: 'UPGRADE', tile: 3 });
+    s = act(s, 's0', { type: 'UPGRADE', tile: 5 });
     s = act(s, 's0', { type: 'UPGRADE', tile: 1 });
     expect(fail(s, 's0', { type: 'SELL_UPGRADE', tile: 3 })).toBe('sellEvenly');
     s = act(s, 's0', { type: 'SELL_UPGRADE', tile: 1 });
-    expect(cash(s, 's0')).toBe(1500 - 150 + 25);
+    expect(cash(s, 's0')).toBe(1500 - 4 * 50 + 25);
     expect(fail(s, 's0', { type: 'MORTGAGE', tile: 1 })).toBe('sellUpgradesFirst');
   });
 
   it('максимум 3 уровня', () => {
-    let s = giveTiles(newMatch(), 's0', 1, 3);
-    for (let i = 0; i < 3; i++) {
-      s = act(s, 's0', { type: 'UPGRADE', tile: 1 });
-      s = act(s, 's0', { type: 'UPGRADE', tile: 3 });
-    }
+    let s = giveTiles(newMatch(), 's0', 1, 3, 5);
+    for (let i = 0; i < 3; i++) for (const t of [1, 3, 5]) s = act(s, 's0', { type: 'UPGRADE', tile: t });
     expect(fail(s, 's0', { type: 'UPGRADE', tile: 1 })).toBe('maxLevel');
   });
 
@@ -126,7 +125,7 @@ describe('улучшения и залог', () => {
   });
 
   it('продажа улучшения по кругу не даёт прироста оценки', () => {
-    let s = giveTiles(newMatch(), 's0', 1, 3);
+    let s = giveTiles(newMatch(), 's0', 1, 3, 5);
     s = act(s, 's0', { type: 'UPGRADE', tile: 1 });
     const v1 = liquidationValue(s, 's0');
     s = act(s, 's0', { type: 'SELL_UPGRADE', tile: 1 });
@@ -180,8 +179,8 @@ describe('аукцион', () => {
 
   it('угол «Аукцион» запускает торги за свободный объект', () => {
     let s = newMatch();
-    s.players[0]!.position = 5;
-    s = rollWith(s, 1, 2);
+    s.players[0]!.position = 7;
+    s = rollWith(s, 1, 2); // 10 = угол «Аукцион»
     expect(s.phase).toBe('AUCTION');
     expect(s.tiles[s.auction!.tile]!.owner).toBeNull();
   });
@@ -280,11 +279,10 @@ describe('долг и банкротство', () => {
 
   it('последний живой побеждает сразу', () => {
     let s = newMatch({ seats: 2 });
-    s = giveTiles(s, 's1', 31);
-    s.tiles[31]!.level = 3;
-    s = giveTiles(s, 's1', 30);
+    s = giveTiles(s, 's1', 36, 38, 39); // Япония целиком
+    s.tiles[39]!.level = 3;
     s.players[0]!.cash = 10;
-    s.players[0]!.position = 28;
+    s.players[0]!.position = 36;
     s = rollWith(s, 1, 2);
     s = act(s, 's0', { type: 'DECLARE_BANKRUPTCY' });
     expect(s.phase).toBe('FINISHED');

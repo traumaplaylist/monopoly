@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import type { Group } from 'three';
 import type { PublicPlayer } from '@pb/game-core';
 import { currentSeat } from '../ui/hooks';
+import { WORLD } from '@pb/content';
 import { get, set, useStore } from '../state/store';
 import { Model } from './assets';
 import { TILE_HEIGHT, tileRect } from './layout';
@@ -10,6 +11,7 @@ import type { Profile } from './layout';
 import { JellyFigure } from './jelly';
 
 const STEP_TIME = 0.16;
+const N = WORLD.tiles.length;
 
 /** Standing spot: each seat has its own corner of the tile so tokens never overlap. */
 export function tileSpot(index: number, slot: number, profile: Profile): [number, number, number] {
@@ -31,7 +33,7 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
     const path: number[] = [];
     const n = Math.abs(move.steps);
     const dir = move.steps >= 0 ? 1 : -1;
-    for (let k = 0; k <= n; k++) path.push((((move.from + dir * k) % 32) + 32) % 32);
+    for (let k = 0; k <= n; k++) path.push((((move.from + dir * k) % N) + N) % N);
     if (path[path.length - 1] !== move.to) path.push(move.to);
     anim.current = { path, t: 0, seg: 0 };
     invalidate();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MEGAPOLIS, RULESET } from '@pb/content';
+import { WORLD, RULESET } from '@pb/content';
 import { actingSeats, currentSeat as coreCurrentSeat } from '@pb/game-core';
 import type { MatchState, PublicMatch, PublicPlayer } from '@pb/game-core';
 import { serverNow, useStore } from '../state/store';
@@ -40,7 +40,7 @@ export function isMyTurn(m: PublicMatch, seat: string | null): boolean {
 }
 
 export function tileDef(i: number) {
-  return MEGAPOLIS.tiles[i]!;
+  return WORLD.tiles[i]!;
 }
 
 export { RULESET };

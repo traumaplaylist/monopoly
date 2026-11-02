@@ -1,7 +1,7 @@
-import { CHANCE_CARDS, ITEM_INFO, MEGAPOLIS } from '@pb/content';
+import { CHANCE_CARDS, ITEM_INFO, WORLD } from '@pb/content';
 import type { MatchEvent, MoneyReason, PublicMatch, SeatId, TradeSide } from '@pb/game-core';
 
-export const tileName = (i: number) => MEGAPOLIS.tiles[i]?.name ?? `#${i}`;
+export const tileName = (i: number) => WORLD.tiles[i]?.name ?? `#${i}`;
 
 export const money = (n: number) => n.toLocaleString('ru-RU');
 

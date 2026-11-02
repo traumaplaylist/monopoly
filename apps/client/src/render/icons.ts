@@ -2,9 +2,10 @@
 // The same SVG is drawn on canvas tile textures and shown in the DOM (sheets, action bar).
 // Artist PNGs from assets.json still take priority on the board.
 import {
-  Anchor, BedDouble, BookOpen, Building2, Car, Clapperboard, Coffee, Croissant, Drama, Flag, Gamepad2, Gavel,
-  GraduationCap, Image as ImageIcon, Landmark, Music, Palette, Plus, Receipt, ShoppingCart, Sparkles, Store, Swords,
-  TrainFront, TreeDeciduous,
+  Anchor, BedDouble, BookOpen, Building2, Car, Citrus, Clapperboard, Coffee, Croissant, Drama, FerrisWheel, Fish, Flag,
+  Flower2, Gamepad2, Gavel, GraduationCap, Guitar, Image as ImageIcon, Landmark, Moon, Music, Palette, Pizza, Plane, Plus,
+  Pyramid, Receipt, Sailboat, Ship, Shirt, ShoppingCart, Sparkles, Store, Sun, Swords, TrainFront, TreeDeciduous, TreePalm,
+  Umbrella, Utensils, Wine,
 } from 'lucide-static';
 
 const SVG: Record<string, string> = {
@@ -12,6 +13,10 @@ const SVG: Record<string, string> = {
   bed: BedDouble, disco: Sparkles, palette: Palette, stall: Store, cross: Plus, basket: ShoppingCart, coffee: Coffee,
   columns: Landmark, swords: Swords, frame: ImageIcon, masks: Drama, tree: TreeDeciduous, book: BookOpen, car: Car,
   cap: GraduationCap, anchor: Anchor, train: TrainFront, note: Music, tower: Building2,
+  // «Вокруг света»
+  pyramid: Pyramid, fish: Fish, plane: Plane, palm: TreePalm, landmark: Landmark, sun: Sun, guitar: Guitar,
+  umbrella: Umbrella, ship: Ship, moon: Moon, citrus: Citrus, music: Music, ferris: FerrisWheel, pizza: Pizza,
+  shirt: Shirt, sailboat: Sailboat, wine: Wine, utensils: Utensils, sakura: Flower2,
 };
 
 /** SVG markup for a tile visual key (null for «?» chance tiles and unknown keys). */

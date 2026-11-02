@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { GROUPS, ITEM_INFO, MEGAPOLIS, RULESET, groupTiles } from '@pb/content';
+import { GROUPS, ITEM_INFO, WORLD, RULESET, groupTiles } from '@pb/content';
 import type { ItemKind } from '@pb/content';
 import { rentFor } from '@pb/game-core';
 import type { MatchState } from '@pb/game-core';
@@ -22,7 +22,7 @@ function usePrimary() {
   if (mine && m.phase === 'PRE_ROLL') return { label: 'Бросить кубики', cmd: { type: 'ROLL' }, testId: 'roll' } as const;
   if (mine && m.phase === 'POST_ROLL') return { label: 'Завершить ход', cmd: { type: 'END_TURN' }, testId: 'end-turn' } as const;
   if (mine && m.phase === 'PURCHASE' && m.purchaseTile !== null)
-    return { label: `Купить ${money(MEGAPOLIS.tiles[m.purchaseTile]!.price!)}`, cmd: { type: 'BUY' }, testId: 'buy-main' } as const;
+    return { label: `Купить ${money(WORLD.tiles[m.purchaseTile]!.price!)}`, cmd: { type: 'BUY' }, testId: 'buy-main' } as const;
   if (m.phase === 'DEBT' && m.debt?.payer === me) return { label: `Оплатить ${money(m.debt.amount)}`, cmd: { type: 'PAY_DEBT' }, testId: 'pay' } as const;
   const who = seatName(m, currentSeat(m), me);
   return { label: m.phase === 'MINIGAME' ? 'Мини-игра' : m.phase === 'AUCTION' ? 'Идёт аукцион' : `Ходит ${who}…`, cmd: null, testId: 'wait' } as const;
@@ -32,10 +32,10 @@ export function TileSummary() {
   const m = useMatch();
   const selected = useStore((s) => s.selectedTile);
   const index = selected ?? m.players.find((p) => p.seat === currentSeat(m))!.position;
-  const t = MEGAPOLIS.tiles[index]!;
+  const t = WORLD.tiles[index]!;
   const o = m.tiles[index];
   const g = t.group ? GROUPS[t.group] : null;
-  const owned = g && o?.owner ? groupTiles(MEGAPOLIS, t.group!).filter((i) => m.tiles[i]?.owner === o.owner).length : 0;
+  const owned = g && o?.owner ? groupTiles(WORLD, t.group!).filter((i) => m.tiles[i]?.owner === o.owner).length : 0;
   return (
     <button className="tile-summary" onClick={() => set({ selectedTile: index, sheet: { kind: 'tile', tile: index } })} data-testid="tile-summary">
       <span className="ts-icon" style={{ background: specialColor(t) ?? '#5b4c86' }}>
@@ -52,7 +52,7 @@ export function TileSummary() {
                   {money(rentFor(m as unknown as MatchState, index))}
                 </>
               )}
-              {g && ` · ${seatName(m, o.owner)} ${owned}/${groupTiles(MEGAPOLIS, t.group!).length}`}
+              {g && ` · ${seatName(m, o.owner)} ${owned}/${groupTiles(WORLD, t.group!).length}`}
             </>
           ) : t.price ? (
             <>

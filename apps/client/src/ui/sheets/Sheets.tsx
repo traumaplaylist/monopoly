@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { GROUPS, MEGAPOLIS, RULESET, groupTiles } from '@pb/content';
+import { GROUPS, WORLD, RULESET, groupTiles } from '@pb/content';
 import { available, isTradeableTile, mortgageValue, ownedTiles, rentFor, unmortgageCost, upgradeCost } from '@pb/game-core';
 import type { Command, MatchState, PublicMatch, TradeSide } from '@pb/game-core';
 import { api, send } from '../../net/connection';
@@ -58,11 +58,11 @@ function manageReason(m: PublicMatch, seat: string | null, raising: boolean): st
 function TileSheet({ tile }: { tile: number }) {
   const m = useMatch();
   const me = useStore((s) => s.seat);
-  const t = MEGAPOLIS.tiles[tile]!;
+  const t = WORLD.tiles[tile]!;
   const o = m.tiles[tile];
   const g = t.group ? GROUPS[t.group] : null;
   const mine = !!o && o.owner === me;
-  const group = t.group ? groupTiles(MEGAPOLIS, t.group) : [];
+  const group = t.group ? groupTiles(WORLD, t.group) : [];
   const trap = m.traps.find((x) => x.tile === tile);
   const blocked = m.upgradeBlocks.some((b) => b.tile === tile);
   const why = manageReason(m, me, false);
@@ -147,7 +147,7 @@ function AssetsSheet() {
       {tiles.length === 0 && <p className="muted">У вас пока нет собственности.</p>}
       <div className="asset-list">
         {tiles.map((i) => {
-          const t = MEGAPOLIS.tiles[i]!;
+          const t = WORLD.tiles[i]!;
           const o = m.tiles[i]!;
           return (
             <button key={i} className={`asset ${o.mortgaged ? 'mortgaged' : ''}`} onClick={() => set({ selectedTile: i, sheet: { kind: 'tile', tile: i } })}>
@@ -173,7 +173,7 @@ function TileChecklist({ m, owner, picked, toggle }: { m: PublicMatch; owner: st
         return (
           <label key={i} className={ok ? '' : 'disabled'} title={ok ? '' : 'В группе есть улучшения'}>
             <input type="checkbox" disabled={!ok} checked={picked.includes(i)} onChange={() => toggle(i)} />
-            <span className="swatch" style={{ background: GROUPS[MEGAPOLIS.tiles[i]!.group!].color }} />
+            <span className="swatch" style={{ background: GROUPS[WORLD.tiles[i]!.group!].color }} />
             {tileName(i)}
             {m.tiles[i]!.mortgaged && <small> (залог)</small>}
           </label>
@@ -245,10 +245,10 @@ function DuelSheet({ tile: preset }: { tile?: number }) {
   const me = useMe()!;
   const eligible = useMemo(
     () =>
-      MEGAPOLIS.tiles
+      WORLD.tiles
         .filter((t) => {
           const o = m.tiles[t.index];
-          return o?.owner && o.owner !== me.seat && !o.mortgaged && !groupTiles(MEGAPOLIS, t.group!).some((i) => (m.tiles[i]?.level ?? 0) > 0);
+          return o?.owner && o.owner !== me.seat && !o.mortgaged && !groupTiles(WORLD, t.group!).some((i) => (m.tiles[i]?.level ?? 0) > 0);
         })
         .map((t) => t.index),
     [m, me.seat],
@@ -258,7 +258,7 @@ function DuelSheet({ tile: preset }: { tile?: number }) {
   useEffect(() => {
     if (tile === null && eligible.length) setTile(eligible[0]!);
   }, [eligible, tile]);
-  const base = tile !== null ? MEGAPOLIS.tiles[tile]!.price! : 0;
+  const base = tile !== null ? WORLD.tiles[tile]!.price! : 0;
   const [low, setLow] = useState(0);
   const [high, setHigh] = useState(0);
   useEffect(() => {
@@ -293,7 +293,7 @@ function DuelSheet({ tile: preset }: { tile?: number }) {
         <select value={tile ?? ''} onChange={(e) => setTile(Number(e.target.value))}>
           {eligible.map((i) => (
             <option key={i} value={i}>
-              {tileName(i)} — {seatName(m, m.tiles[i]!.owner)} (цена {MEGAPOLIS.tiles[i]!.price})
+              {tileName(i)} — {seatName(m, m.tiles[i]!.owner)} (цена {WORLD.tiles[i]!.price})
             </option>
           ))}
         </select>

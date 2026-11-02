@@ -1,6 +1,12 @@
 // Board geometry profiles. Canonical tile indices are identical everywhere; a profile only
-// changes coordinates and tile proportions. Start = top-left, clockwise; corners at 0/8/16/24.
+// changes coordinates and tile proportions. Start = top-left, clockwise; corners at 0/10/20/30.
 export type ProfileId = 'landscape' | 'portrait';
+
+/** Tiles between two corners; the ring has 4 * (SIDE_TILES + 1) = 40 tiles. */
+export const SIDE_TILES = 9;
+const C1 = SIDE_TILES + 1;
+const C2 = C1 * 2;
+const C3 = C1 * 3;
 
 export interface Profile {
   id: ProfileId;
@@ -16,15 +22,13 @@ export interface Profile {
 }
 
 function profile(id: ProfileId, cw: number, cd: number, tw: number, sh: number): Profile {
-  return { id, cw, cd, tw, sh, width: cw * 2 + tw * 7, height: cd * 2 + sh * 7 };
+  return { id, cw, cd, tw, sh, width: cw * 2 + tw * SIDE_TILES, height: cd * 2 + sh * SIDE_TILES };
 }
 
 export const PROFILES: Record<ProfileId, Profile> = {
-  landscape: profile('landscape', 1.9, 1.6, 1.3, 0.92),
-  portrait: profile('portrait', 1.22, 1.25, 0.97, 1.75),
+  landscape: profile('landscape', 1.75, 1.45, 1.15, 0.8),
+  portrait: profile('portrait', 1.12, 1.1, 0.82, 1.42),
 };
-
-export const SIDE_TILES = 7;
 export const TILE_HEIGHT = 0.07;
 export const GAP = 0.06;
 export const STRIP = 0.24;
@@ -48,13 +52,13 @@ export function tileRect(i: number, p: Profile): TileRect {
   const cx = (left: boolean) => (left ? L + p.cw / 2 : R - p.cw / 2);
   const cz = (top: boolean) => (top ? T + p.cd / 2 : B - p.cd / 2);
   if (i === 0) return { x: cx(true), z: cz(true), w: p.cw, d: p.cd, side: 0, corner: true };
-  if (i === 8) return { x: cx(false), z: cz(true), w: p.cw, d: p.cd, side: 1, corner: true };
-  if (i === 16) return { x: cx(false), z: cz(false), w: p.cw, d: p.cd, side: 2, corner: true };
-  if (i === 24) return { x: cx(true), z: cz(false), w: p.cw, d: p.cd, side: 3, corner: true };
-  if (i < 8) return { x: L + p.cw + p.tw * (i - 1) + p.tw / 2, z: cz(true), w: p.tw, d: p.cd, side: 0, corner: false };
-  if (i < 16) return { x: cx(false), z: T + p.cd + p.sh * (i - 9) + p.sh / 2, w: p.cw, d: p.sh, side: 1, corner: false };
-  if (i < 24) return { x: R - p.cw - p.tw * (i - 17) - p.tw / 2, z: cz(false), w: p.tw, d: p.cd, side: 2, corner: false };
-  return { x: cx(true), z: B - p.cd - p.sh * (i - 25) - p.sh / 2, w: p.cw, d: p.sh, side: 3, corner: false };
+  if (i === C1) return { x: cx(false), z: cz(true), w: p.cw, d: p.cd, side: 1, corner: true };
+  if (i === C2) return { x: cx(false), z: cz(false), w: p.cw, d: p.cd, side: 2, corner: true };
+  if (i === C3) return { x: cx(true), z: cz(false), w: p.cw, d: p.cd, side: 3, corner: true };
+  if (i < C1) return { x: L + p.cw + p.tw * (i - 1) + p.tw / 2, z: cz(true), w: p.tw, d: p.cd, side: 0, corner: false };
+  if (i < C2) return { x: cx(false), z: T + p.cd + p.sh * (i - C1 - 1) + p.sh / 2, w: p.cw, d: p.sh, side: 1, corner: false };
+  if (i < C3) return { x: R - p.cw - p.tw * (i - C2 - 1) - p.tw / 2, z: cz(false), w: p.tw, d: p.cd, side: 2, corner: false };
+  return { x: cx(true), z: B - p.cd - p.sh * (i - C3 - 1) - p.sh / 2, w: p.cw, d: p.sh, side: 3, corner: false };
 }
 
 export function outward(side: Side): [number, number] {

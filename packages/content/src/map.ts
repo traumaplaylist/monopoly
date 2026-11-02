@@ -1,9 +1,10 @@
-// Map «Мегаполис»: 32 tiles, corners at 0/8/16/24, seven tiles per side. Index order is canonical
-// on every client; layouts only change coordinates.
+// Map «Вокруг света»: 40 tiles, corners at 0/10/20/30, nine tiles per side. Index order is canonical
+// on every client; layouts only change coordinates. Groups are countries (3 cities each) plus four
+// airports (one per side). City names are public geography; no tile list is copied from any game.
 
 export type TileKind = 'start' | 'auction' | 'pause' | 'parking' | 'property' | 'chance' | 'tax' | 'minigame' | 'duel';
 
-export type GroupId = 'cozy' | 'fun' | 'night' | 'trade' | 'culture' | 'green' | 'port' | 'prestige';
+export type GroupId = 'egypt' | 'india' | 'mexico' | 'turkey' | 'air' | 'spain' | 'italy' | 'france' | 'japan';
 
 export interface GroupDef {
   id: GroupId;
@@ -29,17 +30,19 @@ export interface TileDef {
 }
 
 export const GROUPS: Record<GroupId, GroupDef> = {
-  cozy: { id: 'cozy', name: 'Уют', color: '#ff8a1f', upgradeCost: 50 },
-  fun: { id: 'fun', name: 'Досуг', color: '#f23d5c', upgradeCost: 50 },
-  night: { id: 'night', name: 'Ночная жизнь', color: '#13b5a6', upgradeCost: 100 },
-  trade: { id: 'trade', name: 'Торговля', color: '#ffc21a', upgradeCost: 100 },
-  culture: { id: 'culture', name: 'Культура', color: '#8b55e6', upgradeCost: 120 },
-  green: { id: 'green', name: 'Зелёный квартал', color: '#58c22c', upgradeCost: 120 },
-  port: { id: 'port', name: 'Транспорт', color: '#2f7ff0', upgradeCost: 150 },
-  prestige: { id: 'prestige', name: 'Престиж', color: '#ff4fa8', upgradeCost: 150 },
+  egypt: { id: 'egypt', name: 'Египет', color: '#ff8a1f', upgradeCost: 50 },
+  india: { id: 'india', name: 'Индия', color: '#f23d5c', upgradeCost: 50 },
+  mexico: { id: 'mexico', name: 'Мексика', color: '#13b5a6', upgradeCost: 100 },
+  turkey: { id: 'turkey', name: 'Турция', color: '#ffc21a', upgradeCost: 100 },
+  air: { id: 'air', name: 'Аэропорты', color: '#5b6b8c', upgradeCost: 100 },
+  spain: { id: 'spain', name: 'Испания', color: '#8b55e6', upgradeCost: 150 },
+  italy: { id: 'italy', name: 'Италия', color: '#58c22c', upgradeCost: 150 },
+  france: { id: 'france', name: 'Франция', color: '#2f7ff0', upgradeCost: 200 },
+  japan: { id: 'japan', name: 'Япония', color: '#ff4fa8', upgradeCost: 200 },
 };
 
-export const GROUP_ORDER: GroupId[] = ['cozy', 'fun', 'night', 'trade', 'culture', 'green', 'port', 'prestige'];
+export const GROUP_ORDER: GroupId[] = ['egypt', 'india', 'mexico', 'turkey', 'air', 'spain', 'italy', 'france', 'japan'];
+
 
 const prop = (
   index: number,
@@ -60,140 +63,63 @@ const prop = (
   price,
   baseRent,
   visual,
-  description: `Объект группы «${GROUPS[group].name}». Владелец получает аренду, полный комплект удваивает её.`,
+  description:
+    group === 'air'
+      ? 'Аэропорт. Все четыре аэропорта — один комплект: полный комплект удваивает аренду.'
+      : `Город страны «${GROUPS[group].name}». Владелец получает аренду, вся страна целиком удваивает её.`,
 });
 
-export const MEGAPOLIS_TILES: readonly TileDef[] = [
-  {
-    id: 'start',
-    index: 0,
-    kind: 'start',
-    name: 'Старт',
-    shortLabel: 'Старт',
-    visual: 'flag',
-    description: '+200 монет за каждое прохождение или попадание.',
-  },
-  prop(1, 'cafe', 'Кофейня', 'Кафе', 'cozy', 100, 10, 'cup'),
-  {
-    id: 'chance-1',
-    index: 2,
-    kind: 'chance',
-    name: 'Шанс',
-    shortLabel: 'Шанс',
-    visual: 'question',
-    description: 'Возьмите карту «Шанс».',
-  },
-  prop(3, 'bakery', 'Пекарня', 'Пекарня', 'cozy', 120, 12, 'bread'),
-  {
-    id: 'tax-city',
-    index: 4,
-    kind: 'tax',
-    name: 'Городской сбор',
-    shortLabel: 'Сбор',
-    tax: 100,
-    visual: 'receipt',
-    description: 'Заплатите банку 100 монет.',
-  },
-  prop(5, 'arcade', 'Аркада', 'Аркада', 'fun', 140, 14, 'gamepad'),
-  {
-    id: 'minigame-1',
-    index: 6,
-    kind: 'minigame',
-    name: 'Мини-игра',
-    shortLabel: 'Мини-игра',
-    visual: 'gamepad',
-    description: 'Ставит общую мини-игру на ближайшую границу раунда.',
-  },
-  prop(7, 'cinema', 'Кинотеатр', 'Кино', 'fun', 160, 16, 'film'),
-  {
-    id: 'auction',
-    index: 8,
-    kind: 'auction',
-    name: 'Аукцион',
-    shortLabel: 'Аукцион',
-    visual: 'gavel',
-    description: 'Торги за случайный свободный объект.',
-  },
-  prop(9, 'hotel', 'Отель', 'Отель', 'night', 180, 18, 'bed'),
-  prop(10, 'club', 'Клуб', 'Клуб', 'night', 180, 18, 'disco'),
-  {
-    id: 'chance-2',
-    index: 11,
-    kind: 'chance',
-    name: 'Шанс',
-    shortLabel: 'Шанс',
-    visual: 'question',
-    description: 'Возьмите карту «Шанс».',
-  },
-  prop(12, 'studio', 'Студия', 'Студия', 'night', 200, 20, 'palette'),
-  prop(13, 'market', 'Рынок', 'Рынок', 'trade', 200, 20, 'stall'),
-  prop(14, 'pharmacy', 'Аптека', 'Аптека', 'trade', 220, 22, 'cross'),
-  prop(15, 'shop', 'Универмаг', 'Магазин', 'trade', 220, 22, 'basket'),
-  {
-    id: 'pause',
-    index: 16,
-    kind: 'pause',
-    name: 'Пауза',
-    shortLabel: 'Пауза',
-    visual: 'coffee',
-    description: 'Безопасная клетка, ничего не происходит.',
-  },
-  prop(17, 'museum', 'Музей', 'Музей', 'culture', 240, 24, 'columns'),
-  {
-    id: 'duel',
-    index: 18,
-    kind: 'duel',
-    name: 'Дуэль',
-    shortLabel: 'Дуэль',
-    visual: 'swords',
-    description: 'Можно бросить вызов за объект соперника (тратит жетон вызова).',
-  },
-  prop(19, 'gallery', 'Галерея', 'Галерея', 'culture', 240, 24, 'frame'),
-  prop(20, 'theatre', 'Театр', 'Театр', 'culture', 260, 26, 'masks'),
-  {
-    id: 'minigame-2',
-    index: 21,
-    kind: 'minigame',
-    name: 'Мини-игра',
-    shortLabel: 'Мини-игра',
-    visual: 'gamepad',
-    description: 'Ставит общую мини-игру на ближайшую границу раунда.',
-  },
-  prop(22, 'park', 'Парк', 'Парк', 'green', 260, 26, 'tree'),
-  prop(23, 'library', 'Библиотека', 'Книги', 'green', 280, 28, 'book'),
-  {
-    id: 'parking',
-    index: 24,
-    kind: 'parking',
-    name: 'Парковка',
-    shortLabel: 'Парковка',
-    visual: 'car',
-    description: 'Безопасная клетка, ничего не происходит.',
-  },
-  prop(25, 'university', 'Университет', 'Универ', 'green', 280, 28, 'cap'),
-  {
-    id: 'tax-lux',
-    index: 26,
-    kind: 'tax',
-    name: 'Налог на роскошь',
-    shortLabel: 'Налог',
-    tax: 150,
-    visual: 'receipt',
-    description: 'Заплатите банку 150 монет.',
-  },
-  prop(27, 'port', 'Морской порт', 'Порт', 'port', 300, 36, 'anchor'),
-  prop(28, 'station', 'Вокзал', 'Вокзал', 'port', 300, 36, 'train'),
-  {
-    id: 'chance-3',
-    index: 29,
-    kind: 'chance',
-    name: 'Шанс',
-    shortLabel: 'Шанс',
-    visual: 'question',
-    description: 'Возьмите карту «Шанс».',
-  },
-  prop(30, 'concert', 'Концерт-холл', 'Концерт', 'prestige', 310, 42, 'note'),
-  prop(31, 'tower', 'Небоскрёб', 'Небоскрёб', 'prestige', 320, 48, 'tower'),
+const special = (index: number, id: string, kind: TileKind, name: string, shortLabel: string, visual: string, description: string, tax?: number): TileDef =>
+  tax ? { id, index, kind, name, shortLabel, visual, description, tax } : { id, index, kind, name, shortLabel, visual, description };
+
+const CHANCE = 'Возьмите карту «Шанс».';
+const MINIGAME = 'Ставит общую мини-игру на ближайшую границу раунда.';
+
+export const WORLD_TILES: readonly TileDef[] = [
+  special(0, 'start', 'start', 'Старт', 'Старт', 'flag', '+200 монет за каждое прохождение или попадание.'),
+  // --- side 1: Египет, аэропорт, Индия
+  prop(1, 'cairo', 'Каир', 'Каир', 'egypt', 100, 10, 'pyramid'),
+  special(2, 'chance-1', 'chance', 'Шанс', 'Шанс', 'question', CHANCE),
+  prop(3, 'luxor', 'Луксор', 'Луксор', 'egypt', 100, 10, 'columns'),
+  special(4, 'tax-tourist', 'tax', 'Туристический сбор', 'Сбор', 'receipt', 'Заплатите банку 100 монет.', 100),
+  prop(5, 'hurghada', 'Хургада', 'Хургада', 'egypt', 120, 12, 'fish'),
+  prop(6, 'air-south', 'Аэропорт «Юг»', 'Аэропорт', 'air', 200, 25, 'plane'),
+  prop(7, 'goa', 'Гоа', 'Гоа', 'india', 140, 14, 'palm'),
+  prop(8, 'delhi', 'Дели', 'Дели', 'india', 140, 14, 'landmark'),
+  prop(9, 'mumbai', 'Мумбаи', 'Мумбаи', 'india', 160, 16, 'film'),
+  special(10, 'auction', 'auction', 'Аукцион', 'Аукцион', 'gavel', 'Торги за случайный свободный объект.'),
+  // --- side 2: Мексика, аэропорт, Турция
+  prop(11, 'cancun', 'Канкун', 'Канкун', 'mexico', 180, 18, 'sun'),
+  special(12, 'minigame-1', 'minigame', 'Мини-игра', 'Мини-игра', 'gamepad', MINIGAME),
+  prop(13, 'tulum', 'Тулум', 'Тулум', 'mexico', 180, 18, 'pyramid'),
+  prop(14, 'mexico-city', 'Мехико', 'Мехико', 'mexico', 200, 20, 'guitar'),
+  prop(15, 'air-east', 'Аэропорт «Восток»', 'Аэропорт', 'air', 200, 25, 'plane'),
+  prop(16, 'antalya', 'Анталья', 'Анталья', 'turkey', 220, 22, 'umbrella'),
+  special(17, 'chance-2', 'chance', 'Шанс', 'Шанс', 'question', CHANCE),
+  prop(18, 'izmir', 'Измир', 'Измир', 'turkey', 220, 22, 'ship'),
+  prop(19, 'istanbul', 'Стамбул', 'Стамбул', 'turkey', 240, 24, 'moon'),
+  special(20, 'pause', 'pause', 'Пауза', 'Пауза', 'coffee', 'Безопасная клетка, ничего не происходит.'),
+  // --- side 3: Испания, аэропорт, Италия
+  prop(21, 'valencia', 'Валенсия', 'Валенсия', 'spain', 260, 26, 'citrus'),
+  special(22, 'duel', 'duel', 'Дуэль', 'Дуэль', 'swords', 'Можно бросить вызов за объект соперника (тратит жетон вызова).'),
+  prop(23, 'seville', 'Севилья', 'Севилья', 'spain', 260, 26, 'music'),
+  prop(24, 'barcelona', 'Барселона', 'Барселона', 'spain', 280, 28, 'ferris'),
+  prop(25, 'air-north', 'Аэропорт «Север»', 'Аэропорт', 'air', 200, 25, 'plane'),
+  prop(26, 'naples', 'Неаполь', 'Неаполь', 'italy', 300, 30, 'pizza'),
+  prop(27, 'milan', 'Милан', 'Милан', 'italy', 300, 30, 'shirt'),
+  special(28, 'minigame-2', 'minigame', 'Мини-игра', 'Мини-игра', 'gamepad', MINIGAME),
+  prop(29, 'rome', 'Рим', 'Рим', 'italy', 320, 32, 'columns'),
+  special(30, 'parking', 'parking', 'Парковка', 'Парковка', 'car', 'Безопасная клетка, ничего не происходит.'),
+  // --- side 4: Франция, аэропорт, Япония
+  prop(31, 'nice', 'Ницца', 'Ницца', 'france', 340, 36, 'sailboat'),
+  special(32, 'chance-3', 'chance', 'Шанс', 'Шанс', 'question', CHANCE),
+  prop(33, 'lyon', 'Лион', 'Лион', 'france', 340, 36, 'wine'),
+  prop(34, 'paris', 'Париж', 'Париж', 'france', 360, 40, 'bread'),
+  prop(35, 'air-west', 'Аэропорт «Запад»', 'Аэропорт', 'air', 200, 25, 'plane'),
+  prop(36, 'osaka', 'Осака', 'Осака', 'japan', 380, 44, 'utensils'),
+  special(37, 'tax-lux', 'tax', 'Налог на роскошь', 'Налог', 'receipt', 'Заплатите банку 150 монет.', 150),
+  prop(38, 'kyoto', 'Киото', 'Киото', 'japan', 380, 44, 'sakura'),
+  prop(39, 'tokyo', 'Токио', 'Токио', 'japan', 400, 50, 'tower'),
 ];
 
 export interface MapDef {
@@ -203,17 +129,23 @@ export interface MapDef {
   corners: readonly number[];
 }
 
-export const MEGAPOLIS: MapDef = { id: 'megapolis', name: 'Мегаполис', tiles: MEGAPOLIS_TILES, corners: [0, 8, 16, 24] };
+export const BOARD_SIZE_TILES = 40;
+export const CORNERS = [0, 10, 20, 30] as const;
+
+export const WORLD: MapDef = { id: 'world', name: 'Вокруг света', tiles: WORLD_TILES, corners: CORNERS };
 
 export function groupTiles(map: MapDef, group: GroupId): number[] {
   return map.tiles.filter((t) => t.group === group).map((t) => t.index);
 }
 
+/** Expected tiles per group in GROUP_ORDER. */
+export const GROUP_SIZES = [3, 3, 3, 3, 4, 3, 3, 3, 3];
+
 /** Validates map invariants; returns a list of problems (empty if valid). */
 export function validateMap(map: MapDef): string[] {
   const errors: string[] = [];
   const n = map.tiles.length;
-  if (n !== 32) errors.push(`expected 32 tiles, got ${n}`);
+  if (n !== BOARD_SIZE_TILES) errors.push(`expected ${BOARD_SIZE_TILES} tiles, got ${n}`);
   map.tiles.forEach((t, i) => {
     if (t.index !== i) errors.push(`tile ${t.id} has index ${t.index} at position ${i}`);
     if (!t.shortLabel || t.shortLabel.length > 10) errors.push(`tile ${t.id} shortLabel must be 1..10 chars`);
@@ -226,13 +158,13 @@ export function validateMap(map: MapDef): string[] {
   const ids = new Set(map.tiles.map((t) => t.id));
   if (ids.size !== n) errors.push('tile ids are not unique');
   const cornerKinds = map.corners.map((c) => map.tiles[c]?.kind);
-  if (JSON.stringify(map.corners) !== JSON.stringify([0, 8, 16, 24])) errors.push('corners must be 0,8,16,24');
+  if (JSON.stringify(map.corners) !== JSON.stringify(CORNERS)) errors.push(`corners must be ${CORNERS.join(',')}`);
   if (JSON.stringify(cornerKinds) !== JSON.stringify(['start', 'auction', 'pause', 'parking']))
     errors.push(`corner kinds wrong: ${cornerKinds}`);
   const sizes = GROUP_ORDER.map((g) => groupTiles(map, g).length);
-  if (JSON.stringify(sizes) !== JSON.stringify([2, 2, 3, 3, 3, 3, 2, 2])) errors.push(`group sizes ${sizes}`);
+  if (JSON.stringify(sizes) !== JSON.stringify(GROUP_SIZES)) errors.push(`group sizes ${sizes}`);
   const count = (k: TileKind) => map.tiles.filter((t) => t.kind === k).length;
-  if (count('property') !== 20) errors.push('need 20 properties');
+  if (count('property') !== 28) errors.push('need 28 properties');
   if (count('chance') !== 3 || count('tax') !== 2 || count('minigame') !== 2 || count('duel') !== 1)
     errors.push('special tile counts wrong');
   return errors;

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { MEGAPOLIS } from '@pb/content';
+import { WORLD } from '@pb/content';
 import { Scene } from '../../render/Scene';
 import { setCanvasElement, setStageElement } from '../../render/stage';
 import { useStore } from '../../state/store';
@@ -19,7 +19,7 @@ function TopBar() {
   return (
     <header className="topbar">
       <div className="badge-title">
-        <span className="logo-mark">◆</span> {MEGAPOLIS.name.toUpperCase()}
+        <span className="logo-mark">◆</span> {WORLD.name.toUpperCase()}
       </div>
       <div className="badge-round" data-testid="round">
         Раунд <b>{Math.min(m.round, m.settings.maxRounds)}</b> / {m.settings.maxRounds}

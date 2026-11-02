@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import type { Group, Texture } from 'three';
-import { MEGAPOLIS } from '@pb/content';
+import { WORLD } from '@pb/content';
 import { useStore } from '../state/store';
 import { onTileClick } from '../ui/actions';
 import { loadImage, useManifest } from './assets';
@@ -73,7 +73,7 @@ function Frame({ w, d }: { w: number; d: number }) {
 function Plate({ profile }: { profile: Profile }) {
   const w = profile.width + PLATE_MARGIN * 2;
   const d = profile.height + PLATE_MARGIN * 2;
-  const paper = useMemo(() => createPaperTexture(w, d, MEGAPOLIS.name.toUpperCase()), [w, d]);
+  const paper = useMemo(() => createPaperTexture(w, d, WORLD.name.toUpperCase()), [w, d]);
   useEffect(() => () => paper.dispose(), [paper]);
   return (
     <group>
@@ -90,12 +90,12 @@ function useTileTextures(profile: Profile): Texture[] | null {
   const [textures, setTextures] = useState<Texture[] | null>(null);
   useEffect(() => {
     let alive = true;
-    const icon = (t: (typeof MEGAPOLIS.tiles)[number]) =>
+    const icon = (t: (typeof WORLD.tiles)[number]) =>
       manifest.icons[t.index] ? loadImage(manifest.icons[t.index]!) : iconImage(t.visual, iconColor(t));
-    void Promise.all(MEGAPOLIS.tiles.map(icon)).then((imgs) => {
+    void Promise.all(WORLD.tiles.map(icon)).then((imgs) => {
       if (!alive) return;
       setTextures(
-        MEGAPOLIS.tiles.map((t, i) => {
+        WORLD.tiles.map((t, i) => {
           const r = tileRect(t.index, profile);
           return createTileTexture(t.index, r.w - CARD_GAP, r.d - CARD_GAP, r.corner, imgs[i] ?? null);
         }),
@@ -114,7 +114,7 @@ function Tiles({ profile }: { profile: Profile }) {
   if (!textures) return null;
   return (
     <group>
-      {MEGAPOLIS.tiles.map((t) => (
+      {WORLD.tiles.map((t) => (
         <TileCard key={t.index} index={t.index} texture={textures[t.index]!} profile={profile} />
       ))}
     </group>
@@ -135,7 +135,7 @@ function TileCard({ index, texture, profile }: { index: number; texture: Texture
   const material = useMemo(
     () => [
       new MeshStandardMaterial({ map: texture, roughness: 0.42, metalness: 0 }),
-      new MeshStandardMaterial({ color: cardEdgeColor(MEGAPOLIS.tiles[index]!), roughness: 0.5 }),
+      new MeshStandardMaterial({ color: cardEdgeColor(WORLD.tiles[index]!), roughness: 0.5 }),
     ],
     [texture, index],
   );

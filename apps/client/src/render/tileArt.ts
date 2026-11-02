@@ -3,7 +3,7 @@
 // bold condensed type; special tiles are cream cards with a coloured badge. PNG icons from
 // assets.json replace the emoji placeholders.
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
-import { GROUPS, MEGAPOLIS } from '@pb/content';
+import { GROUPS, WORLD } from '@pb/content';
 import type { TileDef } from '@pb/content';
 
 export const UI_FONT = 'Rubik, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
@@ -15,6 +15,9 @@ export const VISUAL_ICONS: Record<string, string> = {
   bed: '🛏️', disco: '🪩', palette: '🎨', stall: '🏪', cross: '➕', basket: '🛒', coffee: '☕', columns: '🏛️',
   swords: '⚔️', frame: '🖼️', masks: '🎭', tree: '🌳', book: '📚', car: '🚗', cap: '🎓', anchor: '⚓',
   train: '🚆', note: '🎵', tower: '🏙️',
+  pyramid: '🔺', fish: '🐟', plane: '✈️', palm: '🌴', landmark: '🏛️', sun: '☀️', guitar: '🎸', umbrella: '⛱️',
+  ship: '🚢', moon: '🌙', citrus: '🍊', music: '🎵', ferris: '🎡', pizza: '🍕', shirt: '👔', sailboat: '⛵',
+  wine: '🍷', utensils: '🍣', sakura: '🌸',
 };
 
 export const PALETTE = {
@@ -245,7 +248,7 @@ const INK = '#1f2350';
 /** Icon colour for a tile: coloured on pastel property cards, white on bright specials. */
 export function iconColor(t: TileDef): string {
   if (CORNER_STYLE[t.kind]) return CORNER_STYLE[t.kind]!.ink;
-  if (t.group) return shade(GROUPS[t.group].color, t.group === 'trade' ? -0.25 : -0.05);
+  if (t.group) return shade(GROUPS[t.group].color, t.group === 'turkey' ? -0.25 : -0.05);
   return '#ffffff';
 }
 
@@ -325,7 +328,7 @@ function priceTag(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: n
 
 /** Card face texture; w/d are the card's world size. `img` is the icon (artist PNG or Lucide SVG). */
 export function createTileTexture(index: number, w: number, d: number, corner: boolean, img: HTMLImageElement | null): CanvasTexture {
-  const t = MEGAPOLIS.tiles[index]!;
+  const t = WORLD.tiles[index]!;
   const W = Math.round(w * PX);
   const H = Math.round(d * PX);
   const [c, ctx] = canvas(W, H);

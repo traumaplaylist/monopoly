@@ -28,10 +28,10 @@ describe('расписание мини-игр', () => {
 
   it('клетка «Мини-игра» ставит эпизод на ближайшую границу, даже вне расписания', () => {
     let s = newMatch({ minigameEvery: 3 });
-    s.players[0]!.position = 4;
-    s = finishTurn(rollWith(s, 1, 1)); // 6 = мини-игра
+    s.players[0]!.position = 10;
+    s = finishTurn(rollWith(s, 1, 1)); // 12 = мини-игра
     expect(s.minigameRequested).toBe(true);
-    s.players[1]!.position = 4;
+    s.players[1]!.position = 10;
     s = finishTurn(rollWith(s, 1, 1)); // ещё один запрос в том же раунде
     s = finishTurn(rollWith(s, 2, 2));
     s = finishTurn(rollWith(s, 2, 2));
@@ -273,18 +273,18 @@ describe('предметы', () => {
   it('нельзя ставить ловушку на угол и две на одну клетку', () => {
     let s = newMatch();
     s.players[0]!.items = ['cone', 'cone'];
-    expect(fail(s, 's0', { type: 'PLACE_CONE', tile: 8 })).toBe('badTrapTile');
+    expect(fail(s, 's0', { type: 'PLACE_CONE', tile: 10 })).toBe('badTrapTile');
     s = act(s, 's0', { type: 'PLACE_CONE', tile: 5 });
     expect(fail(s, 's0', { type: 'PLACE_CONE', tile: 5 })).toBe('badTrapTile');
   });
 
   it('скидка уменьшает аренду на 50% по выбору до оплаты', () => {
-    let s = giveTiles(newMatch(), 's1', 3, 1);
+    let s = giveTiles(newMatch(), 's1', 3, 1, 5);
     s.players[0]!.items = ['discount'];
-    s = rollWith(s, 1, 2); // аренда 24 (комплект)
+    s = rollWith(s, 1, 2); // Луксор: аренда 20 (вся страна)
     expect(s.phase).toBe('RENT_CHOICE');
     s = act(s, 's0', { type: 'USE_DISCOUNT' });
-    expect(cash(s, 's0')).toBe(1500 - 12);
+    expect(cash(s, 's0')).toBe(1500 - 10);
     expect(p(s, 's0').items).toEqual([]);
   });
 
@@ -321,7 +321,7 @@ describe('призрак', () => {
 
   it('запрет улучшения действует на следующий ход владельца и истекает; щит блокирует', () => {
     let s = withGhost();
-    s = giveTiles(s, 's1', 1, 3);
+    s = giveTiles(s, 's1', 1, 3, 5);
     s.players[1]!.items = [];
     s = act(s, 's3', { type: 'GHOST_BLOCK', target: 's1', tile: 1 });
     s = finishTurn(rollWith(s, 2, 2)); // ход s0 закончен
@@ -331,7 +331,7 @@ describe('призрак', () => {
     expect(s.upgradeBlocks).toHaveLength(0);
 
     let t = withGhost();
-    t = giveTiles(t, 's1', 1, 3);
+    t = giveTiles(t, 's1', 1, 3, 5);
     t = act(t, 's3', { type: 'GHOST_BLOCK', target: 's1', tile: 1 });
     expect(t.upgradeBlocks).toHaveLength(0);
     expect(p(t, 's1').items).toEqual([]);

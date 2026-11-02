@@ -1,4 +1,4 @@
-import { GROUPS, GROUP_ORDER, groupTiles, MEGAPOLIS, RULESET } from '@pb/content';
+import { GROUPS, GROUP_ORDER, groupTiles, WORLD, RULESET } from '@pb/content';
 import { useStore } from '../../state/store';
 import { money } from '../format';
 import { acting, currentSeat, useMatch } from '../hooks';
@@ -15,7 +15,7 @@ export function PlayerCards() {
       {m.order.map((seat) => {
         const p = m.players.find((x) => x.seat === seat)!;
         const online = room?.seats.find((s) => s.seat === seat)?.connected ?? false;
-        const groups = GROUP_ORDER.filter((g) => groupTiles(MEGAPOLIS, g).some((t) => m.tiles[t]?.owner === seat));
+        const groups = GROUP_ORDER.filter((g) => groupTiles(WORLD, g).some((t) => m.tiles[t]?.owner === seat));
         return (
           <div
             key={seat}

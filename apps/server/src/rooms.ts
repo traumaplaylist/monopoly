@@ -2,7 +2,7 @@
 // All handlers are synchronous: SQLite writes are synchronous and Node runs one handler at a time,
 // so commands of one room are processed strictly sequentially and committed before any ack/broadcast.
 import crypto from 'node:crypto';
-import { RULESET } from '@pb/content';
+import { GROUP_ORDER, RULESET, WORLD, groupTiles } from '@pb/content';
 import { advance, applyCommand, botCommand, createMatch, nextDeadline, privateView, publicView, shiftTime } from '@pb/game-core';
 import type { Command, MatchEvent, SeatId } from '@pb/game-core';
 import type { CommandAck, MatchCommand, RoomPublic, RoomSettings, Snapshot } from '@pb/protocol';
@@ -535,7 +535,7 @@ export class RoomService {
         break;
       case 'set': {
         // Give me the cheapest free full group.
-        for (const g of [[1, 3], [5, 7], [27, 28], [30, 31]]) {
+        for (const g of GROUP_ORDER.map((id) => groupTiles(WORLD, id))) {
           if (g.every((i) => s.tiles[i]!.owner === null || s.tiles[i]!.owner === seat)) {
             for (const i of g) s.tiles[i] = { owner: seat, level: 0, mortgaged: false };
             break;
@@ -560,7 +560,7 @@ export class RoomService {
           s.tiles[i] = { owner: seats[k % seats.length]!, level: levels[k]!, mortgaged: k === 7 };
           k += 1;
         });
-        const spots = [0, 6, 13, 21];
+        const spots = [0, 7, 16, 26];
         s.players.forEach((p, i) => (p.position = spots[i % spots.length]!));
         break;
       }

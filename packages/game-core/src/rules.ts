@@ -1,10 +1,10 @@
 // Pure queries over MatchState.
-import { GROUPS, MEGAPOLIS, RULESET, groupTiles, pct } from '@pb/content';
+import { GROUPS, WORLD, RULESET, groupTiles, pct } from '@pb/content';
 import type { GroupId, TileDef } from '@pb/content';
 import { RuleError, ensure } from './ctx';
 import type { MatchState, Ownership, PlayerState, SeatId } from './types';
 
-export const MAP = MEGAPOLIS;
+export const MAP = WORLD;
 export const BOARD_SIZE = MAP.tiles.length;
 
 export function tileDef(index: number): TileDef {
