@@ -91,7 +91,7 @@ export const WORLD_TILES: readonly TileDef[] = [
   // --- side 2: Мексика, аэропорт, Турция
   prop(11, 'cancun', 'Канкун', 'Канкун', 'mexico', 180, 18, 'sun'),
   special(12, 'minigame-1', 'minigame', 'Мини-игра', 'Мини-игра', 'gamepad', MINIGAME),
-  prop(13, 'tulum', 'Тулум', 'Тулум', 'mexico', 180, 18, 'pyramid'),
+  prop(13, 'tulum', 'Тулум', 'Тулум', 'mexico', 180, 18, 'cactus'),
   prop(14, 'mexico-city', 'Мехико', 'Мехико', 'mexico', 200, 20, 'guitar'),
   prop(15, 'air-east', 'Аэропорт «Восток»', 'Аэропорт', 'air', 200, 25, 'plane'),
   prop(16, 'antalya', 'Анталья', 'Анталья', 'turkey', 220, 22, 'umbrella'),

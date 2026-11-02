@@ -26,7 +26,7 @@ function profile(id: ProfileId, cw: number, cd: number, tw: number, sh: number):
 }
 
 export const PROFILES: Record<ProfileId, Profile> = {
-  landscape: profile('landscape', 1.75, 1.45, 1.15, 0.8),
+  landscape: profile('landscape', 1.55, 1.35, 1.2, 0.82),
   portrait: profile('portrait', 1.12, 1.1, 0.82, 1.42),
 };
 export const TILE_HEIGHT = 0.07;

@@ -13,7 +13,7 @@ import { QUALITY, RENDER_SCALE, SHADOWS } from './quality';
 import { observeStage, stageRect } from './stage';
 
 /** Nearly top-down view with a small tilt (radians from vertical). */
-const TILT = 0.56;
+const TILT = 0.3; // close to top-down like the reference images: crisp, unsquashed tile text
 const CAM_DIST = 40;
 
 /**
@@ -35,7 +35,7 @@ function CameraRig({ profile }: { profile: Profile }) {
     cam.lookAt(0, 0, 0);
     cam.updateMatrixWorld();
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    const m = profile.id === 'portrait' ? 0.25 : 0.45;
+    const m = profile.id === 'portrait' ? 0.2 : 0.25;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (const y of [0, 0.9]) {
       const p = new Vector3(sx * (profile.width / 2 + m), y, sz * (profile.height / 2 + m)).applyMatrix4(cam.matrixWorldInverse);
       minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);

@@ -41,3 +41,6 @@
 | Шрифт Rubik | `@fontsource/rubik` | SIL Open Font License 1.1 |
 | Звуки | синтез WebAudio в коде | собственные |
 | Концепты `output/concepts/*.png` | присланы пользователем, только референсы, в сборку не входят | — |
+
+## Иконки клеток (с 02.11.2026)
+По умолчанию — цветные 3D-иконки **Microsoft Fluent Emoji 3D** (MIT, © Microsoft; лицензия лежит рядом: `public/icons/fluent/LICENSE.txt`). Файл = `public/icons/fluent/<visual>.png`, где `visual` — ключ клетки из `packages/content/src/map.ts`; список подключённых ключей — `FLUENT` в `apps/client/src/render/icons.ts`. Свою иконку для конкретной клетки можно по-прежнему задать в `assets.json` → `icons` (по номеру клетки) — она главнее.

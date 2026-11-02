@@ -14,9 +14,9 @@ import { PALETTE, cardEdgeColor, iconColor, createDeckTexture, createPaperTextur
 import { crystalGeometry } from './jelly';
 
 /** Paper margin around the tile ring. */
-const PLATE_MARGIN = 0.22;
+const PLATE_MARGIN = 0.12;
 /** Width of the wooden frame around the paper. */
-const FRAME = 0.32;
+const FRAME = 0.18;
 /** Thickness of the cardboard board lying on the table. */
 export const PLATE_THICKNESS = 0.14;
 /** Height of a tile card above the board. */
@@ -159,6 +159,11 @@ function TileCard({ index, texture, profile }: { index: number; texture: Texture
   const radius = Math.min(w, d) * 0.12;
   return (
     <group position={[r.x, 0, r.z]}>
+      {/* Soft painted drop shadow (works without real-time shadows, like the reference art). */}
+      <mesh position={[0.05, 0.003, 0.09]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null} renderOrder={-1}>
+        <planeGeometry args={[w + 0.3, d + 0.3]} />
+        <meshBasicMaterial map={cardShadowTexture()} transparent opacity={0.55} depthWrite={false} />
+      </mesh>
       {ownerColor && (
         <mesh geometry={roundedSlab(w + 0.06, d + 0.06, CARD_HEIGHT * 0.55, radius + 0.03, 0.01)} receiveShadow raycast={() => null}>
           <meshStandardMaterial color={ownerColor} roughness={0.35} emissive={ownerColor} emissiveIntensity={0.25} />
@@ -200,6 +205,22 @@ function TileCard({ index, texture, profile }: { index: number; texture: Texture
       </group>
     </group>
   );
+}
+
+let shadowTex: CanvasTexture | null = null;
+/** Blurred rounded-rectangle shadow, shared by all cards (stretched to the card size). */
+function cardShadowTexture(): CanvasTexture {
+  if (shadowTex) return shadowTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d')!;
+  ctx.filter = 'blur(9px)';
+  ctx.fillStyle = 'rgba(40,25,60,0.85)';
+  ctx.beginPath();
+  ctx.roundRect(22, 22, 84, 84, 14);
+  ctx.fill();
+  shadowTex = new CanvasTexture(c);
+  return shadowTex;
 }
 
 /** Rounded card stack: cream edges, printed top. */

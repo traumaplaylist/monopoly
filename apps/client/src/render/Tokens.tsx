@@ -82,7 +82,7 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
   return (
     <group ref={ref} position={initial.current}>
       {/* Whose turn: the figure stands a bit taller (static, so idle frames are not redrawn). */}
-      <group scale={active ? scale * 1.12 : scale} rotation={[-0.45, (slot - 1.5) * 0.12, 0]}>
+      <group scale={active ? scale * 1.12 : scale} rotation={[-0.85, (slot - 1.5) * 0.12, 0]}>
         <Model slot={ghost ? 'ghost' : 'token'} tint={player.color} fallback={<JellyFigure color={player.color} ghost={ghost} />} />
       </group>
     </group>

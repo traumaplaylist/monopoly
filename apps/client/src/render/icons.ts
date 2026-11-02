@@ -32,12 +32,41 @@ export function iconSvg(visual: string, color = '#ffffff', fillOpacity = 0.32, s
     .trim();
 }
 
+/**
+ * Colour 3D icons: Microsoft Fluent Emoji 3D (MIT, https://github.com/microsoft/fluentui-emoji),
+ * files in public/icons/fluent/<visual>.png. They match the user's reference images; Lucide line
+ * icons remain the fallback for visuals without a PNG.
+ */
+export const FLUENT = new Set([
+  'flag', 'receipt', 'gamepad', 'gavel', 'coffee', 'car', 'swords', 'plane', 'pyramid', 'columns', 'fish', 'palm',
+  'landmark', 'film', 'sun', 'cactus', 'guitar', 'umbrella', 'ship', 'moon', 'citrus', 'music', 'ferris', 'pizza',
+  'shirt', 'sailboat', 'wine', 'bread', 'utensils', 'sakura', 'tower', 'money', 'dice',
+]);
+
+export function fluentUrl(visual: string): string | null {
+  return FLUENT.has(visual) ? `icons/fluent/${visual}.png` : null;
+}
+
 const cache = new Map<string, Promise<HTMLImageElement | null>>();
 
-/** Icon as an image for canvas drawing. */
+function loadUrl(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+/** Icon as an image for canvas drawing: colour 3D PNG if available, else a tinted line icon. */
 export function iconImage(visual: string, color = '#ffffff'): Promise<HTMLImageElement | null> {
-  const key = `${visual}:${color}`;
+  const fluent = fluentUrl(visual);
+  const key = fluent ?? `${visual}:${color}`;
   let p = cache.get(key);
+  if (!p && fluent) {
+    p = loadUrl(fluent);
+    cache.set(key, p);
+  }
   if (!p) {
     const svg = iconSvg(visual, color);
     p = svg

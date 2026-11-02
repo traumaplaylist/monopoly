@@ -35,7 +35,7 @@ export const PALETTE = {
 type Pattern = 'stars' | 'rays' | 'circles' | 'dots' | 'waves' | 'diamonds' | 'confetti' | 'stripes';
 
 /** Pixels per world unit for tile cards. */
-const PX = 200;
+const PX = 260;
 
 export function specialColor(t: TileDef): string | null {
   if (t.group) return GROUPS[t.group].color;
@@ -343,8 +343,8 @@ export function createTileTexture(index: number, w: number, d: number, corner: b
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
     sheen(ctx, W, H, index + 5, 0.35);
-    drawIcon(ctx, t, W / 2, H * 0.36, S * 0.42, img, st.ink);
-    label(ctx, name, W / 2, H * 0.76, W * 0.86, S * 0.25, st.ink, false);
+    drawIcon(ctx, t, W / 2, H * 0.37, S * 0.52, img, st.ink);
+    label(ctx, name, W / 2, H * 0.79, W * 0.86, S * 0.24, st.ink, false);
     return finish(c);
   }
 
@@ -370,13 +370,13 @@ export function createTileTexture(index: number, w: number, d: number, corner: b
   }
   const dark = property;
   if (H >= W * 0.9) {
-    drawIcon(ctx, t, W / 2, H * (price ? 0.3 : 0.36), S * (price ? 0.4 : 0.46), img, ink);
-    label(ctx, name, W / 2, H * (price ? 0.62 : 0.74), W * 0.9, S * 0.22, ink, !dark);
-    if (price) priceTag(ctx, W / 2, H * 0.84, S * 0.19, price, ink);
+    drawIcon(ctx, t, W / 2, H * (price ? 0.34 : 0.4), S * (price ? 0.5 : 0.58), img, ink);
+    label(ctx, name, W / 2, H * (price ? 0.68 : 0.8), W * 0.92, S * 0.2, ink, !dark);
+    if (price) priceTag(ctx, W / 2, H * 0.87, S * 0.17, price, ink);
   } else {
-    const iconS = H * 0.62;
-    drawIcon(ctx, t, H * 0.5, H / 2, iconS, img, ink);
-    const tx = H * 0.9;
+    const iconS = H * 0.78;
+    drawIcon(ctx, t, H * 0.55, H * 0.54, iconS, img, ink);
+    const tx = H * 1.0;
     const cw = W - tx - H * 0.1;
     label(ctx, name, tx + cw / 2, H * (price ? 0.36 : 0.5), cw, H * 0.3, ink, !dark);
     if (price) priceTag(ctx, tx + cw / 2, H * 0.72, H * 0.24, price, ink);
