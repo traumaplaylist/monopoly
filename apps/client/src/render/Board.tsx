@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MeshStandardMaterial } from 'three';
+import { CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import type { Group, Texture } from 'three';
 import { MEGAPOLIS } from '@pb/content';
 import { useStore } from '../state/store';
@@ -10,7 +10,8 @@ import { TILE_HEIGHT, centerLayout, tileRect } from './layout';
 import type { Profile } from './layout';
 import { roundedSlab } from './quality';
 import { iconImage } from './icons';
-import { BILLS, PALETTE, cardEdgeColor, iconColor, createBillTexture, createDeckTexture, createDeedTexture, createPaperTexture, createTileTexture, createWoodTexture } from './tileArt';
+import { PALETTE, cardEdgeColor, iconColor, createDeckTexture, createPaperTexture, createTileTexture } from './tileArt';
+import { crystalGeometry } from './jelly';
 
 /** Paper margin around the tile ring. */
 const PLATE_MARGIN = 0.22;
@@ -31,37 +32,39 @@ export function Board({ profile }: { profile: Profile }) {
       <Plate profile={profile} />
       <Tiles profile={profile} />
       <Decks profile={profile} />
-      <TableDecor profile={profile} />
+      <CenterDecor profile={profile} />
     </group>
   );
 }
 
+/** Dark plum backdrop (variant 1 of the reference): a soft radial glow under the board. */
 function Table() {
-  const wood = useMemo(() => {
-    const t = createWoodTexture();
-    t.repeat.set(6, 6);
+  const tex = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 512;
+    const ctx = c.getContext('2d')!;
+    const g = ctx.createRadialGradient(256, 256, 30, 256, 256, 256);
+    g.addColorStop(0, '#4a3f86');
+    g.addColorStop(0.55, '#332a66');
+    g.addColorStop(1, '#221c47');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 512, 512);
+    const t = new CanvasTexture(c);
+    t.colorSpace = SRGBColorSpace;
     return t;
   }, []);
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, TABLE_Y, 0]} receiveShadow raycast={() => null}>
-      <planeGeometry args={[90, 90]} />
-      <meshStandardMaterial map={wood} roughness={0.62} metalness={0} />
+      <planeGeometry args={[60, 60]} />
+      <meshStandardMaterial map={tex} roughness={0.95} />
     </mesh>
   );
 }
 
-/** Wooden tray the paper board lies in (reference: thick rounded wooden frame). */
+/** Board rim the paper map lies in. */
 function Frame({ w, d }: { w: number; d: number }) {
-  const wood = useMemo(() => {
-    const t = createWoodTexture();
-    t.repeat.set(1.5, 1.5);
-    t.rotation = 0.02;
-    return t;
-  }, []);
-  const material = useMemo(
-    () => [new MeshStandardMaterial({ map: wood, color: '#e8b98a', roughness: 0.45 }), new MeshStandardMaterial({ map: wood, color: '#c98c58', roughness: 0.5 })],
-    [wood],
-  );
+  // Cream cardboard rim with a darker beige edge.
+  const material = useMemo(() => [new MeshStandardMaterial({ color: '#efe1c4', roughness: 0.7 }), new MeshStandardMaterial({ color: '#c9b088', roughness: 0.75 })], []);
   return (
     <mesh position={[0, TABLE_Y, 0]} geometry={roundedSlab(w + FRAME * 2, d + FRAME * 2, PLATE_THICKNESS + 0.04, 0.5, 0.05)} material={material} castShadow receiveShadow raycast={() => null} />
   );
@@ -244,49 +247,51 @@ function Decks({ profile }: { profile: Profile }) {
   );
 }
 
-/** Money stacks and a few deeds lying on the table around the board (pure decor). */
-function TableDecor({ profile }: { profile: Profile }) {
-  const bills = useMemo(() => BILLS.map((b) => createBillTexture(b.value, b.color)), []);
-  const deeds = useMemo(() => [5, 13, 21].map((i) => createDeedTexture(i)), []);
-  const hw = profile.width / 2 + PLATE_MARGIN + FRAME;
-  const hh = profile.height / 2 + PLATE_MARGIN + FRAME;
-  const y = TABLE_Y;
-  const portrait = profile.id === 'portrait';
-  // Spots on the wood, outside the board.
-  const money: [number, number, number][] = portrait
-    ? [
-        [-hw + 1.2, -hh - 1.3, 0.2],
-        [hw - 1.4, hh + 1.3, -0.15],
-      ]
-    : [
-        [-hw - 1.5, -hh + 1.4, 0.25],
-        [-hw - 1.6, hh - 1.6, -0.2],
-      ];
-  const deedSpots: [number, number, number][] = portrait
-    ? [
-        [hw - 1.0, -hh - 1.3, -0.3],
-        [-hw + 1.3, hh + 1.4, 0.25],
-      ]
-    : [
-        [-hw - 1.1, 0.2, -0.3],
-        [-hw - 2.1, 0.7, 0.2],
-      ];
+/** Low-poly trees and loose crystals scattered on the city map (variant 1 of the reference). */
+function CenterDecor({ profile }: { profile: Profile }) {
+  const items = useMemo(() => {
+    const inner = { w: profile.width - profile.cw * 2, h: profile.height - profile.cd * 2 };
+    const c = centerLayout(profile);
+    const keepOut = [
+      ...c.decks.map((d) => ({ x: d.x, z: d.z, w: d.w / 2 + 0.35, d: d.d / 2 + 0.35 })),
+      { x: c.dice.x, z: c.dice.z, w: 1.5, d: 0.8 },
+      { x: 0, z: c.banner, w: 2.6, d: 0.7 },
+    ];
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const res: { x: number; z: number; kind: 'tree' | 'gem'; s: number; color: string }[] = [];
+    const gems = ['#f23d5c', '#2f7ff0', '#ffc21a', '#58c22c', '#8b55e6'];
+    const want = profile.id === 'portrait' ? 12 : 16;
+    for (let k = 0; res.length < want && k < 600; k++) {
+      const x = (rnd() - 0.5) * (inner.w - 0.7);
+      const z = (rnd() - 0.5) * (inner.h - 0.7);
+      if (keepOut.some((o) => Math.abs(x - o.x) < o.w && Math.abs(z - o.z) < o.d)) continue;
+      if (res.some((r) => Math.hypot(r.x - x, r.z - z) < 0.9)) continue;
+      const gem = rnd() < 0.35;
+      res.push({ x, z, kind: gem ? 'gem' : 'tree', s: 1.15 + rnd() * 0.5, color: gem ? gems[Math.floor(rnd() * gems.length)]! : rnd() > 0.5 ? '#5cbf4a' : '#3fa45a' });
+    }
+    return res;
+  }, [profile]);
   return (
-    <group position={[0, y, 0]}>
-      {money.map(([x, z, a], k) => (
-        <group key={`m${k}`} position={[x, 0, z]} rotation={[0, a, 0]}>
-          {BILLS.map((b, i) => (
-            <group key={b.value} position={[(i - 1.5) * 0.28, 0, (i % 2) * 0.18 - 0.1]} rotation={[0, (i - 1.5) * 0.12, 0]}>
-              <CardStack w={1.4} d={0.7} count={3 + ((i + k) % 3)} texture={bills[i]!} jitter={0.04} />
-            </group>
-          ))}
-        </group>
-      ))}
-      {deedSpots.map(([x, z, a], k) => (
-        <group key={`d${k}`} position={[x, 0, z]} rotation={[0, a, 0]}>
-          <CardStack w={0.95} d={1.3} count={2} texture={deeds[k % deeds.length]!} jitter={0.03} />
-        </group>
-      ))}
+    <group>
+      {items.map((it, k) =>
+        it.kind === 'tree' ? (
+          <group key={k} position={[it.x, 0, it.z]} scale={it.s} rotation={[0, k, 0]}>
+            <mesh position={[0, 0.06, 0]} castShadow raycast={() => null}>
+              <cylinderGeometry args={[0.04, 0.05, 0.12, 6]} />
+              <meshStandardMaterial color="#8a5a32" flatShading />
+            </mesh>
+            <mesh position={[0, 0.3, 0]} castShadow raycast={() => null}>
+              <icosahedronGeometry args={[0.2, 0]} />
+              <meshStandardMaterial color={it.color} flatShading roughness={0.6} />
+            </mesh>
+          </group>
+        ) : (
+          <mesh key={k} position={[it.x, 0, it.z]} scale={it.s * 1.4} rotation={[0, k, 0.2]} geometry={crystalGeometry()} castShadow raycast={() => null}>
+            <meshPhysicalMaterial color={it.color} roughness={0.1} clearcoat={1} flatShading emissive={it.color} emissiveIntensity={0.3} />
+          </mesh>
+        ),
+      )}
     </group>
   );
 }

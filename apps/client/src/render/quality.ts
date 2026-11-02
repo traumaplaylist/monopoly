@@ -42,6 +42,17 @@ const SOFTWARE = (() => {
 
 export const QUALITY: Quality = detect();
 
+/** Render resolution factor: 0.6 on CPU rendering (E2E in the cloud), `?scale=1` to override. */
+export const RENDER_SCALE: number = (() => {
+  try {
+    const q = Number(new URLSearchParams(window.location.search).get('scale'));
+    if (q > 0 && q <= 2) return q;
+  } catch {
+    /* ignore */
+  }
+  return SOFTWARE ? 0.6 : 1;
+})();
+
 /** Shadows: off on CPU rendering (unless `?shadows=1`), `?shadows=0` switches them off anywhere. */
 export const SHADOWS: boolean = (() => {
   try {

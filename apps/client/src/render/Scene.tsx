@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { DoubleSide, PCFShadowMap, Vector3 } from 'three';
+import { PCFShadowMap, Vector3 } from 'three';
 import type { OrthographicCamera } from 'three';
 import { Board } from './Board';
 import { AnchorTracker } from './BoardAnchor';
@@ -9,9 +9,8 @@ import { Pieces } from './Pieces';
 import { Tokens } from './Tokens';
 import { PROFILES, pickProfile } from './layout';
 import type { Profile } from './layout';
-import { QUALITY, SHADOWS } from './quality';
+import { QUALITY, RENDER_SCALE, SHADOWS } from './quality';
 import { observeStage, stageRect } from './stage';
-import { createLeavesTexture } from './tileArt';
 
 /** Nearly top-down view with a small tilt (radians from vertical). */
 const TILT = 0.56;
@@ -58,25 +57,12 @@ function CameraRig({ profile }: { profile: Profile }) {
   return null;
 }
 
-/** Invisible plane high above the table: its leaf mask only shows up in the sun's shadow map. */
-function LeafGobo({ profile }: { profile: Profile }) {
-  const tex = useMemo(createLeavesTexture, []);
-  const w = profile.width * 1.15;
-  const h = profile.height * 1.15;
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[profile.width * 0.1, 4, profile.height * 0.02]} castShadow raycast={() => null}>
-      <planeGeometry args={[w, h]} />
-      <meshBasicMaterial map={tex} alphaTest={0.5} transparent colorWrite={false} depthWrite={false} shadowSide={DoubleSide} />
-    </mesh>
-  );
-}
-
 function Sun({ profile }: { profile: Profile }) {
   const span = Math.max(profile.width, profile.height) / 2 + 6;
   const res = QUALITY === 'high' ? 2048 : 1024;
   return (
     <directionalLight
-      color="#fff0d8"
+      color="#fff6ea"
       position={[-8, 16, 6]}
       intensity={1.9}
       castShadow
@@ -102,10 +88,9 @@ function SceneContent() {
     <>
       <CameraRig profile={profile} />
       <AnchorTracker profile={profile} />
-      <hemisphereLight args={['#fff6e8', '#b98a5a', 0.95]} />
+      <hemisphereLight args={['#fff8ee', '#6a5aa8', 1.0]} />
       <ambientLight color="#fff0dc" intensity={0.3} />
       <Sun profile={profile} />
-      <LeafGobo profile={profile} />
       <group position={[0, 0, 0]}>
         <Board profile={profile} />
         <Pieces profile={profile} />
@@ -127,7 +112,10 @@ export function webglAvailable(): boolean {
 
 export function Scene() {
   const [ok] = useState(webglAvailable);
-  const dpr = useMemo<[number, number]>(() => [1, Math.min(QUALITY === 'high' ? 2 : 1.75, window.devicePixelRatio || 1)], []);
+  const dpr = useMemo<[number, number]>(() => {
+    const max = Math.min(QUALITY === 'high' ? 2 : 1.75, window.devicePixelRatio || 1) * RENDER_SCALE;
+    return [Math.min(1, max), max];
+  }, []);
   if (!ok) {
     return (
       <div className="webgl-missing">
@@ -138,7 +126,7 @@ export function Scene() {
   }
   return (
     <Canvas frameloop="demand" flat orthographic shadows={SHADOWS ? { type: PCFShadowMap } : false} dpr={dpr} camera={{ position: [0, 30, 15], near: 0.1, far: 200, zoom: 40 }} gl={{ antialias: true }}>
-      <color attach="background" args={['#c68c55']} />
+      <color attach="background" args={['#221c47']} />
       <SceneContent />
     </Canvas>
   );

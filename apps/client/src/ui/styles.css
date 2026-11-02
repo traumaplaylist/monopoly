@@ -20,9 +20,9 @@
   --lift-sm: 0 2px 0 rgba(150, 100, 50, 0.16), 0 4px 10px rgba(95, 58, 22, 0.12);
   --display: Oswald, 'Arial Narrow', 'Roboto Condensed', sans-serif;
   /* Mixed scheme (reference 02.11): light panels, dark navy controls with gold accents. */
-  --navy: #2b2d63;
-  --navy-2: #383b7c;
-  --navy-edge: #181a42;
+  --navy: #2c2766;
+  --navy-2: #3b3484;
+  --navy-edge: #19153f;
   --gold: #f6c445;
   color-scheme: light;
 }
@@ -162,7 +162,7 @@ input, select { background: #fff; }
 .badge-title .logo-mark { font-size: 1em; color: var(--gold); }
 .badge-round { font-family: var(--display); font-size: 1.05rem; color: var(--gold); letter-spacing: 0.03em; }
 .badge-round b { color: var(--gold); }
-.net { width: 12px; height: 12px; border-radius: 50%; background: var(--ok); margin-left: auto; box-shadow: 0 0 0 3px var(--plum), var(--lift-sm); }
+.net { width: 12px; height: 12px; border-radius: 50%; background: var(--ok); margin-left: auto; box-shadow: 0 0 0 3px var(--navy), var(--lift-sm); }
 .net:not(.online) { background: var(--coral); }
 .stage { grid-area: stage; position: relative; min-width: 0; min-height: 0; pointer-events: none; }
 .stage .chance-card { pointer-events: auto; }
@@ -171,9 +171,12 @@ input, select { background: #fff; }
 .side-tile { margin-top: auto; }
 
 .pcards { display: grid; gap: 8px; }
-.pcard { display: flex; gap: 10px; align-items: center; padding: 8px 10px 8px 8px; border-radius: 16px; background: var(--plum); border: 2px solid var(--line-soft); box-shadow: var(--lift-sm); min-width: 0; position: relative; overflow: hidden; }
+.pcard { display: flex; gap: 10px; align-items: center; padding: 8px 10px 8px 8px; border-radius: 16px; background: linear-gradient(180deg, #332d74, #2a2462); color: #fff; border: 2px solid #4a4296; box-shadow: 0 4px 0 var(--navy-edge), 0 10px 22px rgba(10, 8, 40, 0.35); min-width: 0; position: relative; overflow: hidden; }
 .pcard::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--pc); }
-.pcard.current { border-color: var(--coral); background: #fff4ee; box-shadow: 0 0 0 3px rgba(242, 85, 63, 0.25), var(--lift); }
+.pcard.current { border-color: var(--coral); background: linear-gradient(180deg, #4a2f6e, #3a2763); box-shadow: 0 0 0 3px rgba(242, 85, 63, 0.35), 0 4px 0 var(--navy-edge); }
+.pcard .jelly-badge rect { opacity: 0.95; }
+.pcard .offline { color: #ffc27a; }
+.pcard .pghost { color: #c9b8ff; }
 .pcard.acting:not(.current) { border-color: var(--ochre); }
 .pcard.ghost { opacity: 0.85; }
 .pcard.left { opacity: 0.4; }
