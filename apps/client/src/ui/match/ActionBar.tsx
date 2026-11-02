@@ -108,7 +108,7 @@ function Items() {
             onClick={() => (it === 'cone' || it === 'ticket') && set({ placing: it, sheet: null })}
             data-testid={`item-${it}`}
           >
-            <span>{ITEM_ICON[it]}</span>
+            <img className="slot-icon" src={`icons/fluent/item-${it}.png`} alt={ITEM_ICON[it]} />
             <small>{ITEM_INFO[it].name}</small>
           </button>
         ) : (

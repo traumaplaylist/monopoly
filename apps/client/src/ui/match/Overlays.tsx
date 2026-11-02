@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CHANCE_CARDS, ITEM_INFO } from '@pb/content';
+import type { ChanceEffect } from '@pb/content';
 import { api, reclaim, send } from '../../net/connection';
 import { set, useStore } from '../../state/store';
 import { money, seatName } from '../format';
@@ -22,11 +23,34 @@ export function ChanceCardPopup() {
   if (!c) return null;
   return (
     <div className="chance-card" onClick={() => set({ chanceCard: null })} data-testid="chance-card">
+      <img className="cc-icon" src={chanceIcon(c.effect)} alt="" />
       <div className="cc-deck">Шанс · {seatName(m, card.seat, me)}</div>
       <div className="cc-title">{c.title}</div>
       <div>{c.text}</div>
     </div>
   );
+}
+
+/** 3D icon for a chance card by its effect (Fluent Emoji, public/icons/fluent). */
+function chanceIcon(e: ChanceEffect): string {
+  const f = (n: string) => `icons/fluent/${n}.png`;
+  switch (e.kind) {
+    case 'money':
+      return f(e.amount > 0 ? 'money' : 'chance-money-out');
+    case 'moveTo':
+    case 'moveBy':
+      return f('chance-compass');
+    case 'moveToNearest':
+      return f('plane');
+    case 'collectEach':
+      return f('chance-party');
+    case 'payEach':
+      return f('chance-gift');
+    case 'repairs':
+      return f('chance-tools');
+    case 'item':
+      return f(`item-${e.item}`);
+  }
 }
 
 export function Toast() {

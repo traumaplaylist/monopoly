@@ -6,19 +6,32 @@ import { currentSeat } from '../ui/hooks';
 import { WORLD } from '@pb/content';
 import { get, set, useStore } from '../state/store';
 import { Model } from './assets';
-import { TILE_HEIGHT, tileRect } from './layout';
+import { TILE_HEIGHT, outward, tileRect } from './layout';
 import type { Profile } from './layout';
 import { JellyFigure } from './jelly';
 
 const STEP_TIME = 0.16;
 const N = WORLD.tiles.length;
 
-/** Standing spot: each seat has its own corner of the tile so tokens never overlap. */
+/**
+ * Standing spot. Tokens stand just inside the ring (towards the board centre) in a row along the
+ * tile, so they never cover the tile's name and price; corner tiles are big enough to stand on.
+ */
 export function tileSpot(index: number, slot: number, profile: Profile): [number, number, number] {
   const r = tileRect(index, profile);
-  const fx = (slot % 2 === 0 ? -1 : 1) * 0.22;
-  const fz = (slot < 2 ? -1 : 1) * 0.18;
-  return [r.x + fx * r.w, TILE_HEIGHT, r.z + fz * r.d];
+  if (r.corner) {
+    const fx = (slot % 2 === 0 ? -1 : 1) * 0.24;
+    const fz = (slot < 2 ? -1 : 1) * 0.2;
+    return [r.x + fx * r.w, TILE_HEIGHT, r.z + fz * r.d];
+  }
+  const [ox, oz] = outward(r.side);
+  const along = (slot - 1.5) * (profile.id === 'portrait' ? 0.2 : 0.26);
+  // Top row: figures rise up the screen over the card, so they step further inward.
+  const inset = r.side === 0 ? 0.42 : 0.2;
+  const depth = (r.side % 2 === 0 ? r.d : r.w) / 2 + inset;
+  const x = r.x - ox * depth + (r.side % 2 === 0 ? along : 0);
+  const z = r.z - oz * depth + (r.side % 2 === 1 ? along : 0) + (slot % 2) * 0.06;
+  return [x, 0, z];
 }
 
 function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; profile: Profile }) {
@@ -78,7 +91,7 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
   const initial = useRef(tileSpot(player.position, slot, profile));
   if (player.role === 'left') return null;
   const ghost = player.role === 'ghost';
-  const scale = profile.id === 'portrait' ? 0.72 : 0.95;
+  const scale = profile.id === 'portrait' ? 0.62 : 0.78;
   return (
     <group ref={ref} position={initial.current}>
       {/* Whose turn: the figure stands a bit taller (static, so idle frames are not redrawn). */}
