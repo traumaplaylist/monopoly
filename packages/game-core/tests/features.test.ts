@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RULESET } from '@pb/content';
+import { CHANCE_CARDS, RULESET, WORLD } from '@pb/content';
 import { REACTION, advance, applyCommand, publicView } from '../src';
 import type { MatchState, MemoryGame, ReactionGame } from '../src';
 import { T0, act, cash, fail, finishTurn, giveTiles, newMatch, p, rollWith } from './helpers';
@@ -69,7 +69,8 @@ describe('«Касса закрывается» (реакция)', () => {
     let s = startReaction();
     const g = s.minigame!.game as ReactionGame;
     const target = g.signals.find((x) => x.target)!;
-    const trap = g.signals.find((x) => !x.target)!;
+    // Ловушка после цели: время в командах не должно идти назад (иначе сервер справедливо скажет «late»).
+    const trap = g.signals.find((x) => !x.target && x.at > target.at + target.ttl)!;
     const at = (sig: { at: number }) => g.playStart + sig.at;
     s = act(s, 's0', { type: 'MG_INPUT', minigameId: s.minigame!.id, value: target.id }, at(target) + 100);
     expect((s.minigame!.game as ReactionGame).players.s0!.score).toBe(REACTION.hit + REACTION.fastBonus);
@@ -355,5 +356,56 @@ describe('призрак', () => {
       'notAlive',
     );
     void T0;
+  });
+});
+
+describe('колода «Шанс» (Вокруг света)', () => {
+  const draw = (s: MatchState, card: string) => {
+    s.deck = [card, ...s.deck.filter((x) => x !== card)];
+    return s;
+  };
+
+  it('в колоде 30+ карт, id уникальны, перемещения ведут на существующие клетки с тем же названием', () => {
+    expect(CHANCE_CARDS.length).toBeGreaterThanOrEqual(30);
+    expect(new Set(CHANCE_CARDS.map((c) => c.id)).size).toBe(CHANCE_CARDS.length);
+    const named: Record<string, string> = { 'to-paris': 'Париж', 'to-cairo': 'Каир', 'to-rome': 'Рим', 'to-auction': 'Аукцион', 'to-start': 'Старт' };
+    for (const c of CHANCE_CARDS)
+      if (c.effect.kind === 'moveTo') expect(WORLD.tiles[c.effect.index]!.name).toBe(named[c.id]);
+  });
+
+  it('«Пересадка» ведёт вперёд до ближайшего аэропорта', () => {
+    let s = draw(newMatch(), 'to-airport');
+    s = rollWith(s, 1, 1); // 2 = Шанс → аэропорт 6
+    expect(p(s, 's0').position).toBe(6);
+    expect(s.phase).toBe('PURCHASE');
+    for (const [from, to] of [
+      [15, 25], // 17 = Шанс → «Север»
+      [30, 35], // 32 = Шанс → «Запад»
+    ] as const) {
+      let t = newMatch();
+      t.players[0]!.position = from;
+      t = rollWith(draw(t, 'to-airport'), 1, 1);
+      expect(p(t, 's0').position).toBe(to);
+    }
+  });
+
+  it('«День рождения»: каждый живой соперник платит; «Угощаю всех»: вы платите каждому', () => {
+    let s = draw(newMatch(), 'birthday');
+    s = rollWith(s, 1, 1);
+    expect(cash(s, 's0')).toBe(1500 + 3 * 20);
+    for (const x of ['s1', 's2', 's3']) expect(cash(s, x)).toBe(1480);
+    let t = draw(newMatch(), 'treat');
+    t = rollWith(t, 1, 1);
+    expect(cash(t, 's0')).toBe(1500 - 3 * 20);
+    expect(cash(t, 's2')).toBe(1520);
+  });
+
+  it('соперник без денег попадает в долг перед вытянувшим карту', () => {
+    let s = newMatch();
+    s.players[1]!.cash = 5;
+    s = draw(s, 'guide');
+    s = rollWith(s, 1, 1);
+    expect(s.phase).toBe('DEBT');
+    expect(s.debt).toMatchObject({ payer: 's1', payee: 's0', amount: 30 });
   });
 });

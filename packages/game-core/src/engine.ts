@@ -570,6 +570,24 @@ function drawChance(ctx: Ctx, p: PlayerState, depth: number): void {
       landOn(ctx, p, depth + 1);
       return;
     }
+    case 'moveToNearest': {
+      // Forward to the next tile of the group (e.g. the nearest airport), salary if «Старт» is passed.
+      let steps = 1;
+      while (steps < BOARD_SIZE && MAP.tiles[(p.position + steps) % BOARD_SIZE]!.group !== e.group) steps++;
+      const from = p.position;
+      const raw = from + steps;
+      p.position = raw % BOARD_SIZE;
+      emit(ctx, { t: 'moved', seat: p.seat, from, to: p.position, steps, direct: false });
+      if (raw >= BOARD_SIZE) transfer(ctx, null, p.seat, RULESET.startSalary, 'salary');
+      landOn(ctx, p, depth + 1);
+      return;
+    }
+    case 'collectEach':
+      for (const o of s.players) if (o.role === 'alive' && o.seat !== p.seat) s.pending.push({ payer: o.seat, payee: p.seat, amount: e.amount, reason: 'chance' });
+      return;
+    case 'payEach':
+      for (const o of s.players) if (o.role === 'alive' && o.seat !== p.seat) s.pending.push({ payer: p.seat, payee: o.seat, amount: e.amount, reason: 'chance' });
+      return;
     case 'item':
       return gainItem(ctx, p, e.item);
     case 'repairs': {
