@@ -676,7 +676,7 @@ function roundEnd(ctx: Ctx): void {
   s.round += 1;
   const participants = s.order.filter((seat) => player(s, seat).role !== 'left');
   if (due && participants.length >= 2) {
-    const kind: MinigameKind = s.stats.minigamesPlayed % 2 === 0 ? 'reaction' : 'memory';
+    const kind: MinigameKind = (['reaction', 'memory', 'quiz'] as const)[s.stats.minigamesPlayed % 3]!;
     s.minigame = createMinigame(ctx, kind, 'group', participants);
     setPhase(ctx, 'MINIGAME', null);
     return;
@@ -1002,7 +1002,7 @@ function acceptDuel(ctx: Ctx, seat: SeatId, offerId: number): void {
   s.stats.duelsPlayed += 1;
   emit(ctx, { t: 'duel', offer: d, result: 'accepted' });
   // The server picks the game after terms are fixed.
-  const kind: MinigameKind = ctx.rng.int(0, 1) === 0 ? 'reaction' : 'memory';
+  const kind: MinigameKind = (['reaction', 'memory', 'quiz'] as const)[ctx.rng.int(0, 2)]!;
   s.minigame = createMinigame(ctx, kind, 'duel', [d.buyer, d.seller]);
   setPhase(ctx, 'DUEL', null);
 }

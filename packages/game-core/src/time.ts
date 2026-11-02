@@ -24,6 +24,12 @@ export function shiftTime(state: MatchState, delta: number): MatchState {
     if (mg.game.kind === 'reaction') {
       if (mg.game.playStart) mg.game.playStart += delta;
       if (mg.game.playEnd) mg.game.playEnd += delta;
+    } else if (mg.game.kind === 'quiz') {
+      for (const q of mg.game.questions) {
+        if (q.start) q.start += delta;
+        if (q.inputEnd) q.inputEnd += delta;
+        if (q.revealEnd) q.revealEnd += delta;
+      }
     } else {
       for (const r of mg.game.rounds) {
         r.showStart += delta;

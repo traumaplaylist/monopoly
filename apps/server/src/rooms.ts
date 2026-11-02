@@ -574,6 +574,11 @@ export class RoomService {
           const mg = s.minigame;
           mg.stageEndsAt = now;
           if (mg.game.kind === 'reaction' && mg.stage === 'play') mg.game.playEnd = now;
+          if (mg.game.kind === 'quiz' && mg.stage === 'play') {
+            const x = mg.game.questions[mg.game.q]!;
+            x.inputEnd = Math.min(x.inputEnd, now);
+            if (mg.game.shown.length > mg.game.q) x.revealEnd = Math.min(x.revealEnd, now);
+          }
           if (mg.game.kind === 'memory' && mg.stage === 'play') {
             const r = mg.game.rounds[mg.game.round]!;
             r.showEnd = Math.min(r.showEnd, now);

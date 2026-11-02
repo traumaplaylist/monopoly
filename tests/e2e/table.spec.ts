@@ -156,7 +156,7 @@ test('стол на четверых: лобби, ходы, мини-игры, �
   await expect(C.page.locator('[data-testid=conn-banner]')).toBeHidden({ timeout: 20_000 });
   expect((await st(C)).seat).toBe(seats[2]);
 
-  // --- Both group mini-games. The server may already have played one on its own timers while the
+  // --- All three group mini-games. The server may already have played one on its own timers while the
   // slow test was busy, so accept whichever kind comes first and then request the other one. ---
   async function playReaction() {
     await shot(B, '10-minigame-intro-portrait');
@@ -194,18 +194,35 @@ test('стол на четверых: лобби, ходы, мини-игры, �
     await expect.poll(async () => (await st(A)).match!.minigame?.stage ?? 'done').toBe('results');
     await cheat(A, 'skip');
   }
+  async function playQuiz() {
+    for (const p of players) await clickIf(p, 'mg-ready');
+    await expect.poll(async () => (await st(A)).match!.minigame?.stage).toBe('play');
+    await expect(A.page.locator('[data-testid=quiz-question]')).toBeVisible();
+    await A.page.waitForTimeout(1200);
+    for (const p of [A, B]) await p.page.locator('.quiz-opt[data-opt="0"]').dispatchEvent('pointerdown');
+    await A.page.waitForTimeout(400);
+    await shot(A, '15b-quiz-desktop');
+    await shot(B, '15c-quiz-portrait');
+    for (let i = 0; i < 20 && (await st(A)).match!.minigame?.stage === 'play'; i++) {
+      await cheat(A, 'skip');
+      await A.page.waitForTimeout(300);
+    }
+    await expect.poll(async () => (await st(A)).match!.minigame?.stage ?? 'done', { timeout: 15_000 }).toBe('results');
+    await cheat(A, 'skip');
+  }
   const played = new Set<string>();
-  for (let k = 0; k < 4 && played.size < 2; k++) {
+  for (let k = 0; k < 6 && played.size < 3; k++) {
     if (k > 0) await cheat(A, 'minigame');
     let s0 = await playUntil(players, (x) => x.match!.phase === 'MINIGAME' && x.match!.minigame?.stage === 'intro' && !played.has(x.match!.minigame.kind));
     const kind = s0.match!.minigame!.kind;
     if (kind === 'reaction') await playReaction();
-    else await playMemory();
+    else if (kind === 'memory') await playMemory();
+    else await playQuiz();
     played.add(kind);
     s0 = await st(A);
     void s0;
   }
-  expect([...played].sort()).toEqual(['memory', 'reaction']);
+  expect([...played].sort()).toEqual(['memory', 'quiz', 'reaction']);
   let s = await st(A);
 
   // --- Duel: the current player challenges an owner ---

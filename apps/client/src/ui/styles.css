@@ -316,6 +316,21 @@ input, select { background: #fff; }
 .progress i { width: 14px; height: 14px; border-radius: 50%; background: #e6d6bd; display: inline-block; }
 .progress i.ok { background: var(--ok); }
 
+/* ---------- «Географ» ---------- */
+.quiz { display: grid; gap: 12px; }
+.quiz-q { display: grid; justify-items: center; gap: 4px; padding: 14px; border-radius: 16px; background: linear-gradient(180deg, #fff, #fff4e2); border: 2px solid var(--line); color: var(--ink); }
+.quiz-icon { font-size: clamp(2.6rem, 10vw, 4rem); line-height: 1; }
+.quiz-prompt { font-family: var(--display); font-weight: 700; font-size: clamp(1.3rem, 4.5vw, 1.9rem); text-align: center; }
+.quiz-ask { color: var(--muted); font-size: 0.9rem; }
+.quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.quiz-opt { min-height: 58px; border-radius: 14px; border: 2px solid #4a4e9a; background: linear-gradient(180deg, var(--navy-2), var(--navy)); color: #fff; font-family: var(--display); font-weight: 700; font-size: 1.15rem; letter-spacing: 0.02em; cursor: pointer; box-shadow: 0 4px 0 var(--navy-edge); touch-action: manipulation; }
+.quiz-opt:disabled { cursor: default; }
+.quiz-opt.picked { background: linear-gradient(180deg, #ffd36a, var(--gold)); color: var(--navy); border-color: #fff3c4; }
+.quiz-opt.ok { background: linear-gradient(180deg, #4fd88f, #1fa463); border-color: #c4f5d9; }
+.quiz-opt.bad { background: linear-gradient(180deg, #ff7a6a, #db3f2b); border-color: #ffd0c8; }
+.quiz-opt.dim { opacity: 0.45; }
+.quiz-answers { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+
 /* ---------- phone: portrait ---------- */
 @media (orientation: portrait), (max-width: 760px) {
   .match {

@@ -33,6 +33,15 @@ export function botCommand(s: MatchState, seat: SeatId, now: number): Command | 
         ) {
           return { type: 'MG_INPUT', minigameId: mg.id, value: sig.id };
         }
+      } else if (g.kind === 'quiz') {
+        const x = g.questions[g.q]!;
+        const pl = g.players[seat]!;
+        // Bots answer after 1.5–3.5 s, right ~70% of the time.
+        const delay = 1500 + hash(seat, g.q) * 2000;
+        if (g.shown.length === g.q && pl.picks[g.q] === null && now >= x.start + delay && now <= x.inputEnd) {
+          const right = hash(seat, g.q + 100) < 0.7;
+          return { type: 'MG_INPUT', minigameId: mg.id, value: right ? g.answers[g.q]! : (g.answers[g.q]! + 1) % x.options.length };
+        }
       } else {
         const r = g.rounds[g.round]!;
         const pl = g.players[seat]!;
@@ -47,7 +56,7 @@ export function botCommand(s: MatchState, seat: SeatId, now: number): Command | 
   }
   if (me.role === 'ghost') {
     if ((s.phase === 'PRE_ROLL' || s.phase === 'POST_ROLL') && me.ghostEnergy >= 1 && me.ghostPrankRound !== s.round) {
-      const tile = [5, 9, 13, 17, 22, 27, 30].find((t) => canPlaceTrap(s, t));
+      const tile = [5, 9, 13, 19, 23, 27, 33, 38].find((t) => canPlaceTrap(s, t));
       if (tile !== undefined) return { type: 'GHOST_TRAP', tile };
     }
     return null;

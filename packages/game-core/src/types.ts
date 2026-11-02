@@ -126,7 +126,7 @@ export interface UpgradeBlock {
   placedTurn: number;
 }
 
-export type MinigameKind = 'reaction' | 'memory';
+export type MinigameKind = 'reaction' | 'memory' | 'quiz';
 
 export interface ReactionSignal {
   id: number;
@@ -173,6 +173,28 @@ export interface MemoryGame {
   >;
 }
 
+export interface QuizQuestion {
+  icon: string;
+  prompt: string;
+  options: string[];
+  /** Absolute times: answers accepted in [start, inputEnd], correct answer shown until revealEnd. */
+  start: number;
+  inputEnd: number;
+  revealEnd: number;
+}
+
+export interface QuizGame {
+  kind: 'quiz';
+  questions: QuizQuestion[];
+  /** Index of the current question. */
+  q: number;
+  /** Correct option per question — PRIVATE (stripped from public views). */
+  answers: number[];
+  /** Correct options already revealed (public), index = question. */
+  shown: number[];
+  players: Record<SeatId, { picks: (number | null)[]; score: number; correct: number; inputs: number }>;
+}
+
 export interface MinigameResult {
   seat: SeatId;
   score: number;
@@ -190,7 +212,7 @@ export interface Minigame {
   stage: 'intro' | 'play' | 'results';
   stageEndsAt: number;
   ready: SeatId[];
-  game: ReactionGame | MemoryGame;
+  game: ReactionGame | MemoryGame | QuizGame;
   results: MinigameResult[] | null;
   /** Prizes / duel outcome applied (exactly once). */
   applied: boolean;

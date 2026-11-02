@@ -1,8 +1,9 @@
 // Projections sent to clients. Never include RNG state, seed, deck order or hidden mini-game answers.
-import type { MatchState, MemoryGame, Minigame, PlayerState, SeatId } from './types';
+import type { MatchState, MemoryGame, Minigame, PlayerState, QuizGame, SeatId } from './types';
 
 export type PublicMemoryGame = Omit<MemoryGame, 'sequences'> & { current: number[] | null };
-export type PublicMinigame = Omit<Minigame, 'game'> & { game: Exclude<Minigame['game'], MemoryGame> | PublicMemoryGame };
+export type PublicQuizGame = Omit<QuizGame, 'answers'>;
+export type PublicMinigame = Omit<Minigame, 'game'> & { game: Exclude<Minigame['game'], MemoryGame | QuizGame> | PublicMemoryGame | PublicQuizGame };
 export type PublicPlayer = Omit<PlayerState, 'pendingItem' | 'ghostTargets'>;
 
 export type PublicMatch = Omit<MatchState, 'rng' | 'seed' | 'deck' | 'minigame' | 'players'> & {
@@ -25,6 +26,11 @@ export function publicView(s: MatchState): PublicMatch {
     if (minigame.game.kind === 'memory') {
       const { sequences, ...g } = minigame.game;
       mg = { ...minigame, game: { ...g, current: g.revealed !== null ? sequences[g.revealed]! : null } };
+    } else if (minigame.game.kind === 'quiz') {
+      // Correct options stay on the server until each question is over (`shown`).
+      const { answers: _a, ...g } = minigame.game;
+      void _a;
+      mg = { ...minigame, game: g };
     } else {
       mg = minigame as PublicMinigame;
     }

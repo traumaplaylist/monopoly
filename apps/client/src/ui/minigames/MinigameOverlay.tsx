@@ -162,6 +162,73 @@ function Memory({ mg, me }: { mg: PublicMinigame; me: string | null }) {
   );
 }
 
+function Quiz({ mg, m, me }: { mg: PublicMinigame; m: PublicMatch; me: string | null }) {
+  const g = mg.game.kind === 'quiz' ? mg.game : null;
+  const now = useFastNow();
+  if (!g) return null;
+  const x = g.questions[g.q]!;
+  const revealed = g.shown.length > g.q ? g.shown[g.q]! : null;
+  const p = me ? g.players[me] : undefined;
+  const mine = p ? p.picks[g.q] : null;
+  const participant = !!me && mg.participants.includes(me);
+  const waiting = now < x.start;
+  const open = !waiting && revealed === null && now <= x.inputEnd && mine === null && participant;
+  const left = Math.max(0, Math.ceil((x.inputEnd - now) / 1000));
+  return (
+    <div className="quiz">
+      <div className="mg-top">
+        <div>
+          Вопрос <b>{g.q + 1}</b> из {g.questions.length}
+        </div>
+        <div className="mg-score">
+          Очки: <b>{p?.score ?? 0}</b>
+        </div>
+        <div className={`timer ${left <= 2 && revealed === null ? 'low' : ''}`}>{revealed === null ? `⏱ ${left}` : 'Ответ'}</div>
+      </div>
+      <div className="quiz-q" data-testid="quiz-question">
+        <span className="quiz-icon">{x.icon}</span>
+        <span className="quiz-prompt">{waiting ? 'Внимание…' : x.prompt}</span>
+        <span className="quiz-ask">Какая это страна?</span>
+      </div>
+      <div className="quiz-options">
+        {x.options.map((o, i) => {
+          const state = revealed === null ? (mine === i ? 'picked' : '') : i === revealed ? 'ok' : mine === i ? 'bad' : 'dim';
+          return (
+            <button
+              key={i}
+              className={`quiz-opt ${state}`}
+              disabled={!open}
+              onPointerDown={() => {
+                if (!open) return;
+                playSound('tap');
+                void send({ type: 'MG_INPUT', minigameId: mg.id, value: i }, { quiet: true });
+              }}
+              data-opt={i}
+            >
+              {waiting ? '…' : o}
+            </button>
+          );
+        })}
+      </div>
+      <div className="quiz-answers">
+        {mg.participants.map((seat) => {
+          const pl = g.players[seat]!;
+          const done = pl.picks[g.q] !== null;
+          const ok = revealed !== null && pl.picks[g.q] === revealed;
+          return (
+            <span key={seat} className={`chip ${done ? 'on' : ''}`}>
+              {seatName(m, seat, me)} {revealed === null ? (done ? '✓' : '…') : ok ? '✅' : done ? '❌' : '—'} · {pl.score}
+            </span>
+          );
+        })}
+      </div>
+      <p className="hint center">
+        {revealed !== null ? (mine === revealed ? 'Верно!' : mine === null ? 'Не успели.' : 'Мимо!') : mine !== null ? 'Ответ принят, ждём остальных.' : 'Быстрый верный ответ (до 3 с) даёт +3.'}
+      </p>
+    </div>
+  );
+}
+
 function Results({ mg, m, me }: { mg: PublicMinigame; m: PublicMatch; me: string | null }) {
   const rows = [...(mg.results ?? [])].sort((a, b) => b.score - a.score);
   const duel = mg.context === 'duel' ? m.duel : null;
@@ -212,7 +279,8 @@ export function MinigameOverlay() {
       <div className="mg-card panel">
         <div className="mg-label">{mg.context === 'duel' ? '⚔ ДУЭЛЬ' : '🎮 МИНИ-ИГРА'}</div>
         {mg.stage === 'intro' && <Intro mg={mg} m={m} me={me} />}
-        {mg.stage === 'play' && (mg.kind === 'reaction' ? <Reaction mg={mg} me={me} /> : <Memory mg={mg} me={me} />)}
+        {mg.stage === 'play' &&
+          (mg.kind === 'reaction' ? <Reaction mg={mg} me={me} /> : mg.kind === 'memory' ? <Memory mg={mg} me={me} /> : <Quiz mg={mg} m={m} me={me} />)}
         {mg.stage === 'results' && <Results mg={mg} m={m} me={me} />}
         {!participant && mg.stage === 'play' && <p className="muted center">Вы наблюдаете: играют {mg.participants.map((s) => seatName(m, s, me)).join(' и ')}.</p>}
       </div>

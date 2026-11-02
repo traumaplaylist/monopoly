@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CHANCE_CARDS, RULESET, WORLD } from '@pb/content';
 import { REACTION, advance, applyCommand, publicView } from '../src';
-import type { MatchState, MemoryGame, ReactionGame } from '../src';
+import type { MatchState, MemoryGame, QuizGame, ReactionGame } from '../src';
 import { T0, act, cash, fail, finishTurn, giveTiles, newMatch, p, rollWith } from './helpers';
 
 /** Play rounds until a group mini-game starts. */
@@ -195,6 +195,15 @@ describe('дуэли', () => {
       for (let i = 0; i < sellerHits; i++)
         s = act(s, 's1', { type: 'MG_INPUT', minigameId: mg.id, value: targets[i]!.id }, g.playStart + targets[i]!.at + 100);
       s = advance(s, g.playEnd)!.state;
+    } else if (g.kind === 'quiz') {
+      for (let q = 0; q < g.questions.length && s.minigame?.stage === 'play'; q++) {
+        const gg = s.minigame!.game as QuizGame;
+        const x = gg.questions[q]!;
+        const ans = gg.answers[q]!;
+        s = act(s, 's0', { type: 'MG_INPUT', minigameId: mg.id, value: q < buyerHits ? ans : (ans + 1) % 4 }, x.start + 100);
+        s = act(s, 's1', { type: 'MG_INPUT', minigameId: mg.id, value: q < sellerHits ? ans : (ans + 1) % 4 }, x.start + 100);
+        s = advance(s, (s.minigame!.game as QuizGame).questions[q]!.revealEnd)!.state;
+      }
     } else {
       const r = g.rounds[0]!;
       const seq = g.sequences[0]!;
@@ -407,5 +416,61 @@ describe('колода «Шанс» (Вокруг света)', () => {
     s = rollWith(s, 1, 1);
     expect(s.phase).toBe('DEBT');
     expect(s.debt).toMatchObject({ payer: 's1', payee: 's0', amount: 30 });
+  });
+});
+
+describe('мини-игра «Географ»', () => {
+  function startQuiz(): MatchState {
+    const s0 = newMatch({ minigameEvery: 1 });
+    s0.stats.minigamesPlayed = 2; // очередь: касса → курьер → географ
+    let s = toMinigame(s0);
+    expect(s.minigame!.kind).toBe('quiz');
+    return everyoneReady(s);
+  }
+
+  it('6 вопросов по 4 варианта, правильный вариант среди них; ответ скрыт в публичном снимке до конца вопроса', () => {
+    const s = startQuiz();
+    const g = s.minigame!.game as QuizGame;
+    expect(g.questions).toHaveLength(6);
+    for (let i = 0; i < 6; i++) {
+      expect(new Set(g.questions[i]!.options).size).toBe(4);
+      expect(g.answers[i]).toBeGreaterThanOrEqual(0);
+    }
+    const pub = publicView(s).minigame!.game as unknown as Record<string, unknown>;
+    expect(pub.answers).toBeUndefined();
+    expect(pub.shown).toEqual([]);
+    expect(JSON.stringify(publicView(s))).not.toContain('"answers"');
+  });
+
+  it('очки: быстро и верно +3, медленно и верно +2, ошибка 0; один ответ на вопрос; все ответили — раскрытие раньше', () => {
+    let s = startQuiz();
+    const id = s.minigame!.id;
+    let g = s.minigame!.game as QuizGame;
+    const x = g.questions[0]!;
+    const ans = g.answers[0]!;
+    s = act(s, 's0', { type: 'MG_INPUT', minigameId: id, value: ans }, x.start + 500);
+    expect(fail(s, 's0', { type: 'MG_INPUT', minigameId: id, value: ans }, x.start + 600)).toBe('alreadyAnswered');
+    s = act(s, 's1', { type: 'MG_INPUT', minigameId: id, value: ans }, x.start + 4000);
+    s = act(s, 's2', { type: 'MG_INPUT', minigameId: id, value: (ans + 1) % 4 }, x.start + 4100);
+    expect(fail(s, 's3', { type: 'MG_INPUT', minigameId: id, value: 7 }, x.start + 4200)).toBe('badInput');
+    s = act(s, 's3', { type: 'MG_INPUT', minigameId: id, value: (ans + 2) % 4 }, x.start + 4300);
+    g = s.minigame!.game as QuizGame;
+    expect(g.players.s0!.score).toBe(3);
+    expect(g.players.s1!.score).toBe(2);
+    expect(g.players.s2!.score).toBe(0);
+    expect(g.shown).toEqual([ans]); // все ответили — правильный показан сразу
+    expect(fail(s, 's0', { type: 'MG_INPUT', minigameId: id, value: 0 }, x.start + 4400)).toBe('notInputTime');
+  });
+
+  it('без ответов игра сама проходит все вопросы и выдаёт итоги; участвовавший без верных ответов — с местом', () => {
+    let s = startQuiz();
+    const id = s.minigame!.id;
+    const g0 = s.minigame!.game as QuizGame;
+    s = act(s, 's0', { type: 'MG_INPUT', minigameId: id, value: (g0.answers[0]! + 1) % 4 }, g0.questions[0]!.start + 100);
+    for (let i = 0; i < 30 && s.minigame?.stage === 'play'; i++) s = advance(s, s.minigame.stageEndsAt)!.state;
+    expect(s.minigame!.stage).toBe('results');
+    const r = s.minigame!.results!;
+    expect(r.find((x) => x.seat === 's0')!.participated).toBe(true);
+    expect(r.find((x) => x.seat === 's1')!.participated).toBe(false);
   });
 });

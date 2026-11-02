@@ -3,7 +3,8 @@
 import { RULESET } from '@pb/content';
 import { RuleError, emit, ensure } from './ctx';
 import type { Ctx } from './ctx';
-import type { MemoryGame, Minigame, MinigameKind, MinigameResult, ReactionGame, SeatId } from './types';
+import { GEO_COUNTRIES, GEO_QUESTIONS } from '@pb/content';
+import type { MemoryGame, Minigame, MinigameKind, MinigameResult, QuizGame, ReactionGame, SeatId } from './types';
 
 export const MINIGAME_INFO: Record<MinigameKind, { title: string; rules: string }> = {
   reaction: {
@@ -16,6 +17,22 @@ export const MINIGAME_INFO: Record<MinigameKind, { title: string; rules: string 
     rules:
       'Запомните маршрут по остановкам, затем повторите его нажатиями. Каждая верная остановка: +1, весь маршрут: +2. Маршрут удлиняется.',
   },
+  quiz: {
+    title: 'Географ',
+    rules:
+      'Шесть вопросов: какой стране принадлежит место, блюдо или символ? Один ответ на вопрос. Верно: +2, быстро (до 3 с): +3. Ошибка не штрафуется.',
+  },
+};
+
+export const QUIZ = {
+  questions: 6,
+  options: 4,
+  leadMs: 800,
+  inputMs: 7_000,
+  revealMs: 1_800,
+  fastMs: 3_000,
+  correct: 2,
+  fastBonus: 1,
 };
 
 export const REACTION = {
@@ -89,10 +106,46 @@ function createMemory(ctx: Ctx, participants: SeatId[]): MemoryGame {
   return { kind: 'memory', stops: MEMORY.stops, rounds: [], round: 0, revealed: null, sequences, players };
 }
 
+function createQuiz(ctx: Ctx, participants: SeatId[]): QuizGame {
+  const bank = ctx.rng.shuffle([...GEO_QUESTIONS.keys()]).slice(0, QUIZ.questions);
+  const questions: QuizGame['questions'] = [];
+  const answers: number[] = [];
+  for (const k of bank) {
+    const q = GEO_QUESTIONS[k]!;
+    const wrong = ctx.rng.shuffle(GEO_COUNTRIES.filter((c) => c !== q.answer)).slice(0, QUIZ.options - 1);
+    const options = ctx.rng.shuffle([q.answer, ...wrong]);
+    answers.push(options.indexOf(q.answer));
+    questions.push({ icon: q.icon, prompt: q.prompt, options, start: 0, inputEnd: 0, revealEnd: 0 });
+  }
+  const players: QuizGame['players'] = {};
+  for (const p of participants) players[p] = { picks: questions.map(() => null), score: 0, correct: 0, inputs: 0 };
+  return { kind: 'quiz', questions, q: 0, answers, shown: [], players };
+}
+
+function scheduleQuizQuestion(g: QuizGame, q: number, from: number): void {
+  const x = g.questions[q]!;
+  x.start = from + QUIZ.leadMs;
+  x.inputEnd = x.start + QUIZ.inputMs;
+  x.revealEnd = x.inputEnd + QUIZ.revealMs;
+  g.q = q;
+}
+
+function revealQuiz(g: QuizGame, now: number): void {
+  const x = g.questions[g.q]!;
+  if (g.shown.length > g.q) return;
+  g.shown.push(g.answers[g.q]!);
+  if (now < x.inputEnd) {
+    // Everybody answered early: shorten the wait.
+    x.inputEnd = now;
+    x.revealEnd = now + QUIZ.revealMs;
+  }
+}
+
 export function createMinigame(ctx: Ctx, kind: MinigameKind, context: 'group' | 'duel', participants: SeatId[]): Minigame {
   const s = ctx.s;
   const id = s.nextId++;
-  const game = kind === 'reaction' ? createReaction(ctx, participants) : createMemory(ctx, participants);
+  const game =
+    kind === 'reaction' ? createReaction(ctx, participants) : kind === 'memory' ? createMemory(ctx, participants) : createQuiz(ctx, participants);
   const mg: Minigame = {
     id,
     kind,
@@ -130,6 +183,9 @@ function startPlay(ctx: Ctx, mg: Minigame): void {
     g.playStart = ctx.now;
     g.playEnd = ctx.now + REACTION.durationMs;
     mg.stageEndsAt = g.playEnd;
+  } else if (g.kind === 'quiz') {
+    scheduleQuizQuestion(g, 0, ctx.now);
+    mg.stageEndsAt = g.questions[0]!.inputEnd;
   } else {
     scheduleMemoryRound(g, 0, ctx.now);
     mg.stageEndsAt = g.rounds[0]!.inputEnd;
@@ -170,6 +226,24 @@ export function minigameInput(ctx: Ctx, mg: Minigame, seat: SeatId, value: numbe
     } else {
       p.mistakes += 1;
       p.score += REACTION.mistake;
+    }
+    return;
+  }
+  if (g.kind === 'quiz') {
+    const x = g.questions[g.q]!;
+    ensure(g.shown.length === g.q && now >= x.start - 150 && now <= x.inputEnd + 300, 'notInputTime');
+    ensure(value >= 0 && value < x.options.length, 'badInput');
+    const p = g.players[seat]!;
+    ensure(p.picks[g.q] === null, 'alreadyAnswered');
+    p.inputs += 1;
+    p.picks[g.q] = value;
+    if (value === g.answers[g.q]) {
+      p.correct += 1;
+      p.score += QUIZ.correct + (now - x.start <= QUIZ.fastMs ? QUIZ.fastBonus : 0);
+    }
+    if (Object.values(g.players).every((pl) => pl.picks[g.q] !== null)) {
+      revealQuiz(g, now);
+      mg.stageEndsAt = x.revealEnd;
     }
     return;
   }
@@ -253,6 +327,26 @@ export function tickMinigame(ctx: Ctx, mg: Minigame): boolean {
         ctx.changed = true;
         finishPlay(ctx, mg);
         continue;
+      }
+      if (g.kind === 'quiz') {
+        const x = g.questions[g.q]!;
+        if (g.shown.length === g.q && ctx.now >= x.inputEnd) {
+          revealQuiz(g, ctx.now);
+          mg.stageEndsAt = x.revealEnd;
+          ctx.changed = true;
+          continue;
+        }
+        if (g.shown.length > g.q && ctx.now >= x.revealEnd) {
+          ctx.changed = true;
+          if (g.q + 1 < g.questions.length) {
+            scheduleQuizQuestion(g, g.q + 1, ctx.now);
+            mg.stageEndsAt = g.questions[g.q]!.inputEnd;
+            continue;
+          }
+          finishPlay(ctx, mg);
+          continue;
+        }
+        return false;
       }
       if (g.kind === 'memory' && g.revealed !== null && ctx.now >= g.rounds[g.round]!.showEnd) {
         g.revealed = null;
