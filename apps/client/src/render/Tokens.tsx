@@ -76,7 +76,7 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
   const initial = useRef(tileSpot(player.position, slot, profile));
   if (player.role === 'left') return null;
   const ghost = player.role === 'ghost';
-  const scale = profile.id === 'portrait' ? 0.95 : 1.25;
+  const scale = profile.id === 'portrait' ? 0.72 : 0.95;
   return (
     <group ref={ref} position={initial.current}>
       {/* Whose turn: the figure stands a bit taller (static, so idle frames are not redrawn). */}

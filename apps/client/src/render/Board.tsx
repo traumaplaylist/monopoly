@@ -9,15 +9,20 @@ import { loadImage, useManifest } from './assets';
 import { TILE_HEIGHT, centerLayout, tileRect } from './layout';
 import type { Profile } from './layout';
 import { roundedSlab } from './quality';
-import { BILLS, PALETTE, createBillTexture, createDeckTexture, createDeedTexture, createPaperTexture, createTileTexture, createWoodTexture } from './tileArt';
+import { iconImage } from './icons';
+import { BILLS, PALETTE, cardEdgeColor, iconColor, createBillTexture, createDeckTexture, createDeedTexture, createPaperTexture, createTileTexture, createWoodTexture } from './tileArt';
 
 /** Paper margin around the tile ring. */
-const PLATE_MARGIN = 0.35;
+const PLATE_MARGIN = 0.22;
+/** Width of the wooden frame around the paper. */
+const FRAME = 0.32;
 /** Thickness of the cardboard board lying on the table. */
 export const PLATE_THICKNESS = 0.14;
 /** Height of a tile card above the board. */
 export const CARD_HEIGHT = TILE_HEIGHT;
-const CARD_GAP = 0.1;
+const CARD_GAP = 0.07;
+/** Height of the wooden table surface. */
+const TABLE_Y = -PLATE_THICKNESS - 0.06;
 
 export function Board({ profile }: { profile: Profile }) {
   return (
@@ -38,10 +43,27 @@ function Table() {
     return t;
   }, []);
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -PLATE_THICKNESS, 0]} receiveShadow raycast={() => null}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, TABLE_Y, 0]} receiveShadow raycast={() => null}>
       <planeGeometry args={[90, 90]} />
       <meshStandardMaterial map={wood} roughness={0.62} metalness={0} />
     </mesh>
+  );
+}
+
+/** Wooden tray the paper board lies in (reference: thick rounded wooden frame). */
+function Frame({ w, d }: { w: number; d: number }) {
+  const wood = useMemo(() => {
+    const t = createWoodTexture();
+    t.repeat.set(1.5, 1.5);
+    t.rotation = 0.02;
+    return t;
+  }, []);
+  const material = useMemo(
+    () => [new MeshStandardMaterial({ map: wood, color: '#e8b98a', roughness: 0.45 }), new MeshStandardMaterial({ map: wood, color: '#c98c58', roughness: 0.5 })],
+    [wood],
+  );
+  return (
+    <mesh position={[0, TABLE_Y, 0]} geometry={roundedSlab(w + FRAME * 2, d + FRAME * 2, PLATE_THICKNESS + 0.04, 0.5, 0.05)} material={material} castShadow receiveShadow raycast={() => null} />
   );
 }
 
@@ -51,9 +73,12 @@ function Plate({ profile }: { profile: Profile }) {
   const paper = useMemo(() => createPaperTexture(w, d, MEGAPOLIS.name.toUpperCase()), [w, d]);
   useEffect(() => () => paper.dispose(), [paper]);
   return (
-    <mesh position={[0, -PLATE_THICKNESS, 0]} geometry={roundedSlab(w, d, PLATE_THICKNESS, 0.3, 0.03)} receiveShadow castShadow raycast={() => null}>
-      <meshStandardMaterial map={paper} roughness={0.92} />
-    </mesh>
+    <group>
+      <Frame w={w} d={d} />
+      <mesh position={[0, -PLATE_THICKNESS + 0.005, 0]} geometry={roundedSlab(w, d, PLATE_THICKNESS, 0.25, 0.015)} receiveShadow raycast={() => null}>
+        <meshStandardMaterial map={paper} roughness={0.92} />
+      </mesh>
+    </group>
   );
 }
 
@@ -62,7 +87,9 @@ function useTileTextures(profile: Profile): Texture[] | null {
   const [textures, setTextures] = useState<Texture[] | null>(null);
   useEffect(() => {
     let alive = true;
-    void Promise.all(MEGAPOLIS.tiles.map((t) => (manifest.icons[t.index] ? loadImage(manifest.icons[t.index]!) : Promise.resolve(null)))).then((imgs) => {
+    const icon = (t: (typeof MEGAPOLIS.tiles)[number]) =>
+      manifest.icons[t.index] ? loadImage(manifest.icons[t.index]!) : iconImage(t.visual, iconColor(t));
+    void Promise.all(MEGAPOLIS.tiles.map(icon)).then((imgs) => {
       if (!alive) return;
       setTextures(
         MEGAPOLIS.tiles.map((t, i) => {
@@ -101,8 +128,15 @@ function TileCard({ index, texture, profile }: { index: number; texture: Texture
   const ownerColor = useStore((s) => (o?.owner ? s.match?.players.find((p) => p.seat === o.owner)?.color : undefined));
   const highlight = useStore((s) => s.match?.purchaseTile === index || s.match?.auction?.tile === index);
 
-  const material = useMemo(() => new MeshStandardMaterial({ map: texture, roughness: 0.48, metalness: 0 }), [texture]);
-  useEffect(() => () => material.dispose(), [material]);
+  // ExtrudeGeometry groups: 0 = top/bottom caps (printed face), 1 = sides and bevel (card thickness).
+  const material = useMemo(
+    () => [
+      new MeshStandardMaterial({ map: texture, roughness: 0.42, metalness: 0 }),
+      new MeshStandardMaterial({ color: cardEdgeColor(MEGAPOLIS.tiles[index]!), roughness: 0.5 }),
+    ],
+    [texture, index],
+  );
+  useEffect(() => () => material.forEach((m) => m.dispose()), [material]);
 
   useFrame(({ invalidate }, dt) => {
     const g = ref.current;
@@ -123,13 +157,13 @@ function TileCard({ index, texture, profile }: { index: number; texture: Texture
   return (
     <group position={[r.x, 0, r.z]}>
       {ownerColor && (
-        <mesh geometry={roundedSlab(w + 0.12, d + 0.12, CARD_HEIGHT * 0.6, radius + 0.06, 0.012)} receiveShadow raycast={() => null}>
-          <meshStandardMaterial color={ownerColor} roughness={0.35} />
+        <mesh geometry={roundedSlab(w + 0.06, d + 0.06, CARD_HEIGHT * 0.55, radius + 0.03, 0.01)} receiveShadow raycast={() => null}>
+          <meshStandardMaterial color={ownerColor} roughness={0.35} emissive={ownerColor} emissiveIntensity={0.25} />
         </mesh>
       )}
       <group ref={ref}>
         <mesh
-          geometry={roundedSlab(w, d, CARD_HEIGHT, radius, 0.018)}
+          geometry={roundedSlab(w, d, CARD_HEIGHT, radius, 0.022)}
           material={material}
           castShadow
           receiveShadow
@@ -190,10 +224,14 @@ function CardStack({ w, d, count, texture, jitter = 0.02 }: { w: number; d: numb
 
 function Decks({ profile }: { profile: Profile }) {
   const layout = centerLayout(profile);
+  const [icon, setIcon] = useState<HTMLImageElement | null>(null);
+  useEffect(() => {
+    void iconImage('gamepad').then(setIcon);
+  }, []);
   const tex = useMemo(
-    () => layout.decks.map((d, k) => createDeckTexture(k === 0 ? 'chance' : 'minigame', d.w, d.d)),
+    () => layout.decks.map((d, k) => createDeckTexture(k === 0 ? 'chance' : 'minigame', d.w, d.d, icon)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile.id],
+    [profile.id, icon],
   );
   return (
     <group>
@@ -210,9 +248,9 @@ function Decks({ profile }: { profile: Profile }) {
 function TableDecor({ profile }: { profile: Profile }) {
   const bills = useMemo(() => BILLS.map((b) => createBillTexture(b.value, b.color)), []);
   const deeds = useMemo(() => [5, 13, 21].map((i) => createDeedTexture(i)), []);
-  const hw = profile.width / 2 + PLATE_MARGIN;
-  const hh = profile.height / 2 + PLATE_MARGIN;
-  const y = -PLATE_THICKNESS;
+  const hw = profile.width / 2 + PLATE_MARGIN + FRAME;
+  const hh = profile.height / 2 + PLATE_MARGIN + FRAME;
+  const y = TABLE_Y;
   const portrait = profile.id === 'portrait';
   // Spots on the wood, outside the board.
   const money: [number, number, number][] = portrait

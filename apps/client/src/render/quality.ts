@@ -23,7 +23,7 @@ function detect(): Quality {
   try {
     const q = new URLSearchParams(window.location.search).get('gfx');
     if (q === 'high' || q === 'low') return q;
-    if (softwareRenderer()) return 'low';
+    if (SOFTWARE) return 'low';
     const coarse = window.matchMedia?.('(pointer: coarse)').matches ?? false;
     const small = Math.min(window.screen?.width ?? 1920, window.screen?.height ?? 1080) < 600;
     return coarse || small ? 'low' : 'high';
@@ -32,12 +32,22 @@ function detect(): Quality {
   }
 }
 
+const SOFTWARE = (() => {
+  try {
+    return softwareRenderer();
+  } catch {
+    return false;
+  }
+})();
+
 export const QUALITY: Quality = detect();
 
-/** Shadows can be switched off for performance checks: `?shadows=0`. */
+/** Shadows: off on CPU rendering (unless `?shadows=1`), `?shadows=0` switches them off anywhere. */
 export const SHADOWS: boolean = (() => {
   try {
-    return new URLSearchParams(window.location.search).get('shadows') !== '0';
+    const q = new URLSearchParams(window.location.search).get('shadows');
+    if (q === '0' || q === '1') return q === '1';
+    return !SOFTWARE;
   } catch {
     return true;
   }

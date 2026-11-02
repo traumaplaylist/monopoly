@@ -4,7 +4,7 @@
 // assets.json replace the emoji placeholders.
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
 import { GROUPS, MEGAPOLIS } from '@pb/content';
-import type { GroupId, TileDef } from '@pb/content';
+import type { TileDef } from '@pb/content';
 
 export const UI_FONT = 'Rubik, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 export const DISPLAY_FONT = 'Oswald, "Arial Narrow", "Roboto Condensed", sans-serif';
@@ -30,16 +30,6 @@ export const PALETTE = {
 };
 
 type Pattern = 'stars' | 'rays' | 'circles' | 'dots' | 'waves' | 'diamonds' | 'confetti' | 'stripes';
-const GROUP_PATTERN: Record<GroupId, Pattern> = {
-  cozy: 'circles',
-  fun: 'confetti',
-  night: 'stars',
-  trade: 'diamonds',
-  culture: 'rays',
-  green: 'dots',
-  port: 'waves',
-  prestige: 'stars',
-};
 
 /** Pixels per world unit for tile cards. */
 const PX = 200;
@@ -207,45 +197,19 @@ function drawPattern(ctx: CanvasRenderingContext2D, kind: Pattern, W: number, H:
 /** Soft «printed card» gradient: lighter top-left, deeper bottom-right. */
 function cardBackground(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
   const g = ctx.createLinearGradient(0, 0, W * 0.6, H);
-  g.addColorStop(0, shade(color, 0.28));
-  g.addColorStop(0.55, color);
-  g.addColorStop(1, shade(color, -0.12));
+  g.addColorStop(0, shade(color, 0.1));
+  g.addColorStop(0.5, color);
+  g.addColorStop(1, shade(color, -0.1));
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
   // Glossy highlight band.
   const hl = ctx.createRadialGradient(W * 0.25, H * 0.1, 0, W * 0.25, H * 0.1, Math.max(W, H) * 0.7);
-  hl.addColorStop(0, 'rgba(255,255,255,0.28)');
+  hl.addColorStop(0, 'rgba(255,255,255,0.12)');
   hl.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = hl;
   ctx.fillRect(0, 0, W, H);
 }
 
-function iconDisc(ctx: CanvasRenderingContext2D, t: TileDef, cx: number, cy: number, r: number, img: HTMLImageElement | null, disc: string, glyph: string) {
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.18)';
-  ctx.shadowBlur = r * 0.25;
-  ctx.shadowOffsetY = r * 0.08;
-  ctx.fillStyle = disc;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-  if (img) {
-    ctx.drawImage(img, cx - r * 0.75, cy - r * 0.75, r * 1.5, r * 1.5);
-    return;
-  }
-  const e = VISUAL_ICONS[t.visual] ?? '•';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  if (e === '?') {
-    ctx.fillStyle = glyph;
-    ctx.font = `700 ${r * 1.5}px ${DISPLAY_FONT}`;
-    ctx.fillText('?', cx, cy + r * 0.06);
-  } else {
-    ctx.font = `${r * 1.05}px ${EMOJI_FONT}`;
-    ctx.fillText(e, cx, cy + r * 0.08);
-  }
-}
 
 function coinPrice(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, value: string, pill: boolean) {
   ctx.font = `700 ${size}px ${DISPLAY_FONT}`;
@@ -292,22 +256,90 @@ function label(ctx: CanvasRenderingContext2D, text: string, x: number, y: number
   ctx.restore();
 }
 
-function caption(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, base: number, color: string) {
-  ctx.save();
-  fit(ctx, text, maxW, base, 700, UI_FONT);
-  ctx.fillStyle = color;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.letterSpacing = `${base * 0.08}px`;
-  ctx.fillText(text, x, y);
-  ctx.restore();
-}
 
 // ------------------------------------------------------------------ tiles
 
-const SPECIAL_CAPTION: Record<string, string> = { chance: 'карта', tax: 'плати', minigame: 'играем', duel: 'вызов' };
+/** Light corner cards with dark ink (reference: white «Старт», beige «Аукцион», lilac «Пауза»). */
+export const CORNER_STYLE: Record<string, { bg: string; ink: string }> = {
+  start: { bg: '#fbf6ec', ink: '#26284a' },
+  auction: { bg: '#f2c979', ink: '#4a2f17' },
+  parking: { bg: '#e2e7ef', ink: '#26284a' },
+  pause: { bg: '#cbb6f6', ink: '#26284a' },
+};
 
-/** Card face texture; w/d are the card's world size. */
+/** Icon colour for a tile (white on colour, dark ink on light corners). */
+export function iconColor(t: TileDef): string {
+  return CORNER_STYLE[t.kind]?.ink ?? '#ffffff';
+}
+
+/** Colour of the card's edge/thickness. */
+export function cardEdgeColor(t: TileDef): string {
+  const corner = CORNER_STYLE[t.kind];
+  return corner ? shade(corner.bg, -0.22) : shade(specialColor(t) ?? '#cccccc', -0.3);
+}
+
+/** Big soft diagonal light bands — the «printed glossy card» sheen of the reference. */
+function sheen(ctx: CanvasRenderingContext2D, W: number, H: number, seed: number, alpha = 0.09) {
+  const rnd = rng(seed);
+  ctx.save();
+  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+  for (let i = 0; i < 3; i++) {
+    const x = (rnd() * 1.4 - 0.2) * W;
+    const w = (0.12 + rnd() * 0.25) * W;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + w, 0);
+    ctx.lineTo(x + w - H * 0.7, H);
+    ctx.lineTo(x - H * 0.7, H);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawIcon(ctx: CanvasRenderingContext2D, t: TileDef, cx: number, cy: number, size: number, img: HTMLImageElement | null, color: string) {
+  ctx.save();
+  ctx.shadowColor = color === '#ffffff' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.12)';
+  ctx.shadowBlur = size * 0.06;
+  ctx.shadowOffsetY = size * 0.03;
+  if (img) {
+    ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
+  } else {
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const e = VISUAL_ICONS[t.visual] ?? '?';
+    ctx.font = e === '?' ? `700 ${size * 1.05}px ${DISPLAY_FONT}` : `${size * 0.8}px ${EMOJI_FONT}`;
+    ctx.fillText(e, cx, cy + size * 0.04);
+  }
+  ctx.restore();
+}
+
+function priceTag(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, value: string, ink: string) {
+  ctx.save();
+  ctx.font = `700 ${size}px ${DISPLAY_FONT}`;
+  const tw = ctx.measureText(value).width;
+  const r = size * 0.36;
+  const gap = size * 0.18;
+  const x0 = cx - (r * 2 + gap + tw) / 2;
+  ctx.shadowColor = 'rgba(0,0,0,0.25)';
+  ctx.shadowBlur = size * 0.1;
+  ctx.shadowOffsetY = size * 0.05;
+  const cg = ctx.createRadialGradient(x0 + r * 0.7, cy - r * 0.3, 0, x0 + r, cy, r);
+  cg.addColorStop(0, '#fff1a8');
+  cg.addColorStop(1, '#f2a900');
+  ctx.fillStyle = cg;
+  ctx.beginPath();
+  ctx.arc(x0 + r, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = ink;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(value, x0 + r * 2 + gap, cy + size * 0.04);
+  ctx.restore();
+}
+
+/** Card face texture; w/d are the card's world size. `img` is the icon (artist PNG or Lucide SVG). */
 export function createTileTexture(index: number, w: number, d: number, corner: boolean, img: HTMLImageElement | null): CanvasTexture {
   const t = MEGAPOLIS.tiles[index]!;
   const W = Math.round(w * PX);
@@ -317,58 +349,35 @@ export function createTileTexture(index: number, w: number, d: number, corner: b
   const S = Math.min(W, H);
 
   if (corner) {
-    const color = PALETTE.corner[t.kind]!;
-    cardBackground(ctx, W, H, color);
-    drawPattern(ctx, 'rays', W, H, index + 3, 'rgba(255,255,255,0.13)');
-    iconDisc(ctx, t, W / 2, H * 0.38, S * 0.22, img, 'rgba(255,255,255,0.95)', color);
-    label(ctx, name, W / 2, H * 0.75, W * 0.86, S * 0.24, '#fff', true);
+    const st = CORNER_STYLE[t.kind]!;
+    const g = ctx.createLinearGradient(0, 0, W * 0.5, H);
+    g.addColorStop(0, shade(st.bg, 0.25));
+    g.addColorStop(1, st.bg);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    sheen(ctx, W, H, index + 5, 0.35);
+    drawIcon(ctx, t, W / 2, H * 0.36, S * 0.42, img, st.ink);
+    label(ctx, name, W / 2, H * 0.76, W * 0.86, S * 0.25, st.ink, false);
     return finish(c);
   }
 
-  if (t.kind === 'property') {
-    const g = GROUPS[t.group!];
-    cardBackground(ctx, W, H, g.color);
-    drawPattern(ctx, GROUP_PATTERN[g.id], W, H, index * 7 + 1);
-    const price = String(t.price ?? '');
-    const dark = g.id === 'trade';
-    const ink = dark ? '#5a3a00' : '#ffffff';
-    if (H >= W * 0.9) {
-      caption(ctx, g.name.toUpperCase(), W / 2, H * 0.1, W * 0.86, S * 0.1, dark ? 'rgba(90,58,0,0.75)' : 'rgba(255,255,255,0.85)');
-      iconDisc(ctx, t, W / 2, H * 0.36, S * 0.16, img, 'rgba(255,255,255,0.9)', g.color);
-      label(ctx, name, W / 2, H * 0.62, W * 0.9, S * 0.22, ink, !dark);
-      coinPrice(ctx, W / 2, H * 0.84, S * 0.13, price, true);
-    } else {
-      const r = H * 0.24;
-      iconDisc(ctx, t, H * 0.38, H / 2, r, img, 'rgba(255,255,255,0.9)', g.color);
-      const tx = H * 0.68;
-      const cw = W - tx - H * 0.08;
-      caption(ctx, g.name.toUpperCase(), tx + cw / 2, H * 0.17, cw, H * 0.12, dark ? 'rgba(90,58,0,0.75)' : 'rgba(255,255,255,0.85)');
-      label(ctx, name, tx + cw / 2, H * 0.45, cw, H * 0.27, ink, !dark);
-      coinPrice(ctx, tx + cw / 2, H * 0.78, H * 0.16, price, true);
-    }
-    return finish(c);
-  }
-
-  // Special tiles: cream card, coloured badge and stripes.
   const color = specialColor(t)!;
-  ctx.fillStyle = PALETTE.paper;
-  ctx.fillRect(0, 0, W, H);
-  drawPattern(ctx, 'stripes', W, H, index, `${color}22`);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = S * 0.035;
-  rr(ctx, S * 0.06, S * 0.06, W - S * 0.12, H - S * 0.12, S * 0.1);
-  ctx.stroke();
-  const cap = SPECIAL_CAPTION[t.kind] ?? '';
+  cardBackground(ctx, W, H, color);
+  sheen(ctx, W, H, index * 7 + 1);
+  const price = t.price ? String(t.price) : '';
+  const dark = t.group === 'trade';
+  const ink = dark ? '#5a3a00' : '#ffffff';
   if (H >= W * 0.9) {
-    caption(ctx, cap.toUpperCase(), W / 2, H * 0.14, W * 0.8, S * 0.1, color);
-    iconDisc(ctx, t, W / 2, H * 0.45, S * 0.24, img, color, '#fff');
-    label(ctx, name, W / 2, H * 0.78, W * 0.84, S * 0.2, color, false);
+    drawIcon(ctx, t, W / 2, H * (price ? 0.3 : 0.36), S * (price ? 0.4 : 0.46), img, ink);
+    label(ctx, name, W / 2, H * (price ? 0.62 : 0.74), W * 0.9, S * 0.22, ink, !dark);
+    if (price) priceTag(ctx, W / 2, H * 0.84, S * 0.19, price, ink);
   } else {
-    iconDisc(ctx, t, H * 0.42, H / 2, H * 0.28, img, color, '#fff');
-    const tx = H * 0.78;
-    const cw = W - tx - H * 0.12;
-    caption(ctx, cap.toUpperCase(), tx + cw / 2, H * 0.28, cw, H * 0.13, color);
-    label(ctx, name, tx + cw / 2, H * 0.58, cw, H * 0.3, color, false);
+    const iconS = H * 0.62;
+    drawIcon(ctx, t, H * 0.5, H / 2, iconS, img, ink);
+    const tx = H * 0.9;
+    const cw = W - tx - H * 0.1;
+    label(ctx, name, tx + cw / 2, H * (price ? 0.36 : 0.5), cw, H * 0.3, ink, !dark);
+    if (price) priceTag(ctx, tx + cw / 2, H * 0.72, H * 0.24, price, ink);
   }
   return finish(c);
 }
@@ -435,35 +444,22 @@ export function createPaperTexture(w: number, h: number, title: string): CanvasT
     ctx.fillStyle = rnd() > 0.5 ? 'rgba(160,120,70,0.06)' : 'rgba(255,255,255,0.35)';
     ctx.fillRect(rnd() * W, rnd() * H, 1 + rnd() * 2, 1);
   }
-  // Soft sun-ray burst behind the title.
-  ctx.save();
-  ctx.translate(W / 2, H / 2);
-  ctx.fillStyle = 'rgba(232,206,160,0.22)';
-  for (let i = 0; i < 24; i += 2) {
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.arc(0, 0, Math.max(W, H), (i / 24) * Math.PI * 2, ((i + 1) / 24) * Math.PI * 2);
-    ctx.closePath();
-    ctx.fill();
+  // Soft pale-yellow stars scattered over the paper (reference: printed sunny pattern).
+  const srnd = rng(17);
+  ctx.fillStyle = 'rgba(255,206,100,0.4)';
+  for (let k = 0; k < 26; k++) {
+    ctx.save();
+    ctx.translate(srnd() * W, srnd() * H);
+    ctx.rotate(srnd() * Math.PI);
+    star(ctx, 0, 0, Math.min(W, H) * (0.05 + srnd() * 0.08), 6);
+    ctx.restore();
   }
-  ctx.restore();
   const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.2, W / 2, H / 2, Math.max(W, H) * 0.75);
   vg.addColorStop(0, 'rgba(251,243,228,0.0)');
-  vg.addColorStop(1, 'rgba(251,243,228,0.95)');
+  vg.addColorStop(1, 'rgba(251,243,228,0.6)');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, W, H);
-  // Debossed title: light edge below-right, dark edge above-left, body slightly darker than paper.
-  const size = fit(ctx, title, W * 0.62, Math.min(W, H) * 0.16, 700, DISPLAY_FONT);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const ty = H * 0.5;
-  const o = size * 0.025;
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.fillText(title, W / 2 + o, ty + o);
-  ctx.fillStyle = 'rgba(150,110,60,0.22)';
-  ctx.fillText(title, W / 2 - o, ty - o);
-  ctx.fillStyle = '#f2e3c8';
-  ctx.fillText(title, W / 2, ty);
+  void title; // no centre title: the reference centre is calm (decks and dice live there)
   return finish(c);
 }
 
@@ -510,7 +506,7 @@ export function createLeavesTexture(): CanvasTexture {
 
 // ------------------------------------------------------------------ decks, money, cards
 
-export function createDeckTexture(kind: 'chance' | 'minigame', w: number, d: number): CanvasTexture {
+export function createDeckTexture(kind: 'chance' | 'minigame', w: number, d: number, icon: HTMLImageElement | null = null): CanvasTexture {
   const W = Math.round(w * PX);
   const H = Math.round(d * PX);
   const [c, ctx] = canvas(W, H);
@@ -528,12 +524,11 @@ export function createDeckTexture(kind: 'chance' | 'minigame', w: number, d: num
   ctx.shadowBlur = H * 0.03;
   ctx.shadowOffsetY = H * 0.015;
   ctx.fillStyle = '#fff';
-  if (kind === 'chance') {
+  if (kind === 'chance' || !icon) {
     ctx.font = `700 ${H * 0.48}px ${DISPLAY_FONT}`;
     ctx.fillText('?', W / 2, H * 0.4);
   } else {
-    ctx.font = `${H * 0.32}px ${EMOJI_FONT}`;
-    ctx.fillText('🎮', W / 2, H * 0.4);
+    ctx.drawImage(icon, W / 2 - H * 0.24, H * 0.16, H * 0.48, H * 0.48);
   }
   ctx.restore();
   label(ctx, kind === 'chance' ? 'ШАНС' : 'МИНИ-ИГРЫ', W / 2, H * 0.78, W * 0.8, H * 0.17, '#fff', true);

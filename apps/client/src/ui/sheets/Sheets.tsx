@@ -8,7 +8,8 @@ import { closeSheet } from '../actions';
 import { eventText, money, seatName, tileName } from '../format';
 import { currentSeat, useMatch, useMe } from '../hooks';
 import { MINIGAME_INFO } from '@pb/game-core';
-import { VISUAL_ICONS } from '../../render/tileArt';
+import { specialColor } from '../../render/tileArt';
+import { TileIcon } from '../TileIcon';
 
 const S = (m: PublicMatch) => m as unknown as MatchState;
 
@@ -68,8 +69,10 @@ function TileSheet({ tile }: { tile: number }) {
   const whyRaise = manageReason(m, me, true);
   return (
     <Sheet title={t.name} testId="tile-sheet">
-      <div className="tile-head" style={{ background: g?.color ?? '#5b4c86' }}>
-        <span className="big-icon">{VISUAL_ICONS[t.visual]}</span>
+      <div className="tile-head" style={{ background: specialColor(t) ?? '#5b4c86' }}>
+        <span className="big-icon">
+          <TileIcon visual={t.visual} size={32} />
+        </span>
         <span>{g ? g.name : t.shortLabel}</span>
       </div>
       <p className="muted">{t.description}</p>

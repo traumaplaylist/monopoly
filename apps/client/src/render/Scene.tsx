@@ -78,7 +78,7 @@ function Sun({ profile }: { profile: Profile }) {
     <directionalLight
       color="#fff0d8"
       position={[-8, 16, 6]}
-      intensity={3.3}
+      intensity={1.9}
       castShadow
       shadow-mapSize={[res, res]}
       shadow-camera-left={-span}
@@ -102,8 +102,8 @@ function SceneContent() {
     <>
       <CameraRig profile={profile} />
       <AnchorTracker profile={profile} />
-      <hemisphereLight args={['#fff4e2', '#a8743f', 0.85]} />
-      <ambientLight color="#ffe6c8" intensity={0.25} />
+      <hemisphereLight args={['#fff6e8', '#b98a5a', 0.95]} />
+      <ambientLight color="#fff0dc" intensity={0.3} />
       <Sun profile={profile} />
       <LeafGobo profile={profile} />
       <group position={[0, 0, 0]}>
@@ -137,7 +137,7 @@ export function Scene() {
     );
   }
   return (
-    <Canvas frameloop="demand" orthographic shadows={SHADOWS ? { type: PCFShadowMap } : false} dpr={dpr} camera={{ position: [0, 30, 15], near: 0.1, far: 200, zoom: 40 }} gl={{ antialias: true }}>
+    <Canvas frameloop="demand" flat orthographic shadows={SHADOWS ? { type: PCFShadowMap } : false} dpr={dpr} camera={{ position: [0, 30, 15], near: 0.1, far: 200, zoom: 40 }} gl={{ antialias: true }}>
       <color attach="background" args={['#c68c55']} />
       <SceneContent />
     </Canvas>

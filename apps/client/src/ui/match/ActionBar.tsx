@@ -7,7 +7,8 @@ import { send } from '../../net/connection';
 import { set, useStore } from '../../state/store';
 import { money, seatName } from '../format';
 import { currentSeat, useMatch, useMe } from '../hooks';
-import { VISUAL_ICONS } from '../../render/tileArt';
+import { specialColor } from '../../render/tileArt';
+import { TileIcon } from '../TileIcon';
 
 const ITEM_ICON: Record<ItemKind, string> = { shield: '🛡️', discount: '🏷️', cone: '🚧' };
 
@@ -37,8 +38,8 @@ export function TileSummary() {
   const owned = g && o?.owner ? groupTiles(MEGAPOLIS, t.group!).filter((i) => m.tiles[i]?.owner === o.owner).length : 0;
   return (
     <button className="tile-summary" onClick={() => set({ selectedTile: index, sheet: { kind: 'tile', tile: index } })} data-testid="tile-summary">
-      <span className="ts-icon" style={{ background: g?.color ?? '#5b4c86' }}>
-        {VISUAL_ICONS[t.visual]}
+      <span className="ts-icon" style={{ background: specialColor(t) ?? '#5b4c86' }}>
+        <TileIcon visual={t.visual} size={26} />
       </span>
       <span className="ts-text">
         <b>{t.name}</b>

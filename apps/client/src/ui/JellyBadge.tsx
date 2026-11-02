@@ -1,4 +1,4 @@
-// Flat «jelly figure» badge for the HUD: the same silhouette as the 3D token, in the player's colour.
+// Flat meeple badge for the HUD: the same silhouette as the 3D token, in the player's colour.
 // Placeholder until the appearance editor (docs/VISUAL_DIRECTION.md, plan item 4).
 export function JellyBadge({ color, ghost = false, size = 48 }: { color: string; ghost?: boolean; size?: number }) {
   const id = `jb${color.replace('#', '')}${ghost ? 'g' : ''}`;
@@ -14,9 +14,9 @@ export function JellyBadge({ color, ghost = false, size = 48 }: { color: string;
       </defs>
       <rect x="1" y="1" width="46" height="46" rx="13" style={{ fill: `color-mix(in srgb, ${c} 18%, white)` }} />
       <g opacity={ghost ? 0.7 : 1}>
-        <ellipse cx="24" cy="41" rx="11" ry="3" fill={c} opacity="0.35" />
-        <path d="M14.5 41 L33.5 41 C35 31 34 24 27.5 21.5 A8 8 0 1 0 20.5 21.5 C14 24 13 31 14.5 41 Z" fill={`url(#${id})`} stroke={c} strokeWidth="1.2" />
-        <ellipse cx="20.5" cy="12" rx="2.6" ry="1.6" fill="#fff" opacity="0.8" transform="rotate(-30 20.5 12)" />
+        <ellipse cx="24" cy="43" rx="15" ry="2.5" fill={c} opacity="0.3" />
+        <path d="M9 42 L19 42 Q24 34 29 42 L39 42 Q37.5 33 32 27 L38.5 25 Q42 22 38.5 19.5 L30.5 18.5 A6.5 6.5 0 1 0 17.5 18.5 L9.5 19.5 Q6 22 9.5 25 L16 27 Q10.5 33 9 42 Z" fill={`url(#${id})`} stroke={c} strokeWidth="1.2" />
+        <ellipse cx="21.5" cy="10" rx="2.4" ry="1.5" fill="#fff" opacity="0.8" transform="rotate(-30 20.5 12)" />
       </g>
     </svg>
   );

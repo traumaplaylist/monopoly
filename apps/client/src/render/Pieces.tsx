@@ -1,24 +1,38 @@
 // Upgrades (levels 1–3) on the group strip and traps (cones) on tiles.
 import { useStore } from '../state/store';
 import { Model } from './assets';
-import { hotelGeometry, houseGeometry, jellyMaterial } from './jelly';
+import { MeshPhysicalMaterial } from 'three';
+import { crystalGeometry } from './jelly';
 import type { ModelSlot } from './assets';
 import { TILE_HEIGHT, tileRect } from './layout';
 import type { Profile } from './layout';
 
+const gemMaterials = new Map<string, MeshPhysicalMaterial>();
+function gemMaterial(color: string): MeshPhysicalMaterial {
+  let m = gemMaterials.get(color);
+  if (!m) {
+    m = new MeshPhysicalMaterial({ color, roughness: 0.1, clearcoat: 1, flatShading: true, emissive: color, emissiveIntensity: 0.3, specularIntensity: 1 });
+    gemMaterials.set(color, m);
+  }
+  return m;
+}
+
+/** Upgrade level = number of crystals in the owner's colour. */
 function UpgradeModel({ level, color }: { level: number; color: string }) {
   const slot = `upgrade${level}` as ModelSlot;
-  const mat = jellyMaterial(color);
-  const fallback =
-    level === 3 ? (
-      <mesh geometry={hotelGeometry()} material={mat} castShadow />
-    ) : (
-      <group>
-        {Array.from({ length: level }, (_, k) => (
-          <mesh key={k} geometry={houseGeometry()} material={mat} position={[(k - (level - 1) / 2) * 0.22, 0, 0]} castShadow />
-        ))}
-      </group>
-    );
+  const mat = gemMaterial(color);
+  const spots: [number, number, number][] = [
+    [0, 0, 0],
+    [-0.15, 0, 0.06],
+    [0.13, 0, 0.08],
+  ];
+  const fallback = (
+    <group>
+      {spots.slice(0, level).map((p, k) => (
+        <mesh key={k} geometry={crystalGeometry()} material={mat} position={p} rotation={[0, k * 0.7 + 0.3, 0]} scale={k === 0 && level === 3 ? 1.25 : 1} castShadow />
+      ))}
+    </group>
+  );
   return <Model slot={slot} tint={color} fallback={fallback} />;
 }
 
@@ -57,10 +71,10 @@ export function Pieces({ profile }: { profile: Profile }) {
     <group>
       {tiles.map((o, i) => {
         if (!o || o.level === 0) return null;
-        // Upgrades stand on the card's caption band (top edge on screen), clear of name and price.
+        // Crystals sit in the card's top-right corner (as on the reference), clear of icon and name.
         const r = tileRect(i, profile);
         return (
-          <group key={`u${i}`} position={[r.x, TILE_HEIGHT, r.z - r.d / 2 + 0.2]} scale={profile.id === 'portrait' ? 1.2 : 1.45}>
+          <group key={`u${i}`} position={[r.x + r.w / 2 - 0.24, TILE_HEIGHT, r.z - r.d / 2 + 0.22]} scale={profile.id === 'portrait' ? 1.3 : 1.7}>
             <UpgradeModel level={o.level} color={players?.find((p) => p.seat === o.owner)?.color ?? '#ffffff'} />
           </group>
         );

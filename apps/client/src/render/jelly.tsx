@@ -1,7 +1,7 @@
 // «Мармеладные» фигурки: translucent extruded silhouettes. On high quality they use real glass
 // transmission; on phones a cheap glossy translucent material.
 import { useMemo } from 'react';
-import { Color, ExtrudeGeometry, MeshPhysicalMaterial, Shape } from 'three';
+import { Color, ExtrudeGeometry, MeshPhysicalMaterial, OctahedronGeometry, Shape } from 'three';
 import type { BufferGeometry } from 'three';
 import { QUALITY } from './quality';
 
@@ -16,14 +16,14 @@ export function jellyMaterial(color: string, ghost = false): MeshPhysicalMateria
     m = new MeshPhysicalMaterial({ color: '#f4f0ff', roughness: 0.3, clearcoat: 1, transparent: true, opacity: 0.45, emissive: '#c9b8ff', emissiveIntensity: 0.25, depthWrite: false });
   } else if (QUALITY === 'high') {
     m = new MeshPhysicalMaterial({
-      color: c.clone().lerp(new Color('#ffffff'), 0.15),
+      color: c,
       roughness: 0.12,
       metalness: 0,
-      transmission: 0.82,
-      thickness: 0.35,
-      ior: 1.4,
+      transmission: 0.45,
+      thickness: 0.4,
+      ior: 1.45,
       attenuationColor: c,
-      attenuationDistance: 0.3,
+      attenuationDistance: 0.2,
       clearcoat: 1,
       clearcoatRoughness: 0.08,
       emissive: c,
@@ -32,13 +32,11 @@ export function jellyMaterial(color: string, ghost = false): MeshPhysicalMateria
   } else {
     m = new MeshPhysicalMaterial({
       color: c,
-      roughness: 0.18,
+      roughness: 0.22,
       clearcoat: 1,
-      clearcoatRoughness: 0.1,
-      transparent: true,
-      opacity: 0.93,
+      clearcoatRoughness: 0.08,
       emissive: c,
-      emissiveIntensity: 0.3,
+      emissiveIntensity: 0.18,
     });
   }
   materials.set(key, m);
@@ -47,25 +45,42 @@ export function jellyMaterial(color: string, ghost = false): MeshPhysicalMateria
 
 let figureGeo: BufferGeometry | null = null;
 
-/** Person silhouette (bell body + round head), extruded with a soft bevel. Base at y = 0. */
+/** Meeple silhouette (head, arms, legs), extruded with a soft bevel. Base at y = 0, faces +Z. */
 export function figureGeometry(): BufferGeometry {
   if (figureGeo) return figureGeo;
   const s = new Shape();
-  const headY = 0.56;
-  const headR = 0.135;
-  const a0 = -1.1;
-  const nx = Math.cos(a0) * headR;
-  const ny = headY + Math.sin(a0) * headR;
-  s.moveTo(-0.19, 0);
-  s.lineTo(0.19, 0);
-  s.bezierCurveTo(0.22, 0.2, 0.2, 0.36, nx + 0.035, ny - 0.01);
-  s.absarc(0, headY, headR, a0, Math.PI - a0, false);
-  s.bezierCurveTo(-0.2, 0.36, -0.22, 0.2, -0.19, 0);
-  const g = new ExtrudeGeometry(s, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.035, bevelSegments: 5, curveSegments: 20 });
-  g.translate(0, 0.035, -0.04);
+  s.moveTo(-0.3, 0);
+  s.lineTo(-0.1, 0);
+  s.quadraticCurveTo(0, 0.2, 0.1, 0);
+  s.lineTo(0.3, 0);
+  s.quadraticCurveTo(0.27, 0.2, 0.17, 0.33);
+  s.lineTo(0.3, 0.37);
+  s.quadraticCurveTo(0.37, 0.43, 0.3, 0.48);
+  s.lineTo(0.13, 0.5);
+  s.absarc(0, 0.6, 0.125, -0.95, Math.PI + 0.95, false);
+  s.lineTo(-0.3, 0.48);
+  s.quadraticCurveTo(-0.37, 0.43, -0.3, 0.37);
+  s.lineTo(-0.17, 0.33);
+  s.quadraticCurveTo(-0.27, 0.2, -0.3, 0);
+  const depth = 0.12;
+  const b = 0.045;
+  const g = new ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: b, bevelSize: 0.035, bevelSegments: 5, curveSegments: 18 });
+  g.translate(0, 0.035, -depth / 2);
   g.computeVertexNormals();
   figureGeo = g;
   return g;
+}
+
+let crystalGeo: BufferGeometry | null = null;
+
+/** Faceted gem used as an upgrade marker (reference: coloured crystals on the cards). */
+export function crystalGeometry(): BufferGeometry {
+  if (!crystalGeo) {
+    crystalGeo = new OctahedronGeometry(0.1, 0);
+    crystalGeo.scale(1, 1.35, 1);
+    crystalGeo.translate(0, 0.135, 0);
+  }
+  return crystalGeo;
 }
 
 let houseGeo: BufferGeometry | null = null;
@@ -100,12 +115,7 @@ export function JellyFigure({ color, ghost = false }: { color: string; ghost?: b
   const geo = useMemo(figureGeometry, []);
   return (
     <group>
-      <mesh geometry={geo} material={mat} castShadow={!ghost} position={[0, ghost ? 0.08 : 0.04, 0]} />
-      {!ghost && (
-        <mesh position={[0, 0.02, 0]} material={mat} castShadow receiveShadow>
-          <cylinderGeometry args={[0.2, 0.22, 0.04, 28]} />
-        </mesh>
-      )}
+      <mesh geometry={geo} material={mat} castShadow={!ghost} position={[0, ghost ? 0.06 : 0, 0]} />
     </group>
   );
 }

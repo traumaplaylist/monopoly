@@ -20,6 +20,7 @@
     "@pb/protocol": "*",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
+    "lucide-static": "^1.66.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "socket.io-client": "^4.8.4",
