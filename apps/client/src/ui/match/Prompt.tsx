@@ -86,7 +86,7 @@ export function Prompt() {
   if (placing) {
     body = (
       <div className="prompt slim">
-        <div className="prompt-title">{placing === 'ghostBlock' ? 'Выберите чужой объект, который нельзя будет улучшить' : 'Выберите обычную клетку для ловушки'}</div>
+        <div className="prompt-title">{placing === 'ghostBlock' ? 'Выберите чужой объект, который нельзя будет улучшить' : placing === 'ticket' ? 'Выберите аэропорт, куда полетите' : 'Выберите обычную клетку для ловушки'}</div>
         <button className="btn" onClick={() => set({ placing: null })}>
           Отмена
         </button>

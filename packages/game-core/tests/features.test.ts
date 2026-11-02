@@ -95,11 +95,12 @@ describe('«Касса закрывается» (реакция)', () => {
     const id = s.minigame!.id;
     const hit = (st: MatchState, seat: string, sig: (typeof targets)[number]) =>
       act(st, seat, { type: 'MG_INPUT', minigameId: id, value: sig.id }, g.playStart + sig.at + 100);
+    // Команды по времени не назад: сначала все ответы на первый сигнал, потом второй.
     s = hit(s, 's0', targets[0]!);
-    s = hit(s, 's0', targets[1]!);
     s = hit(s, 's1', targets[0]!);
     s = hit(s, 's2', targets[0]!); // s1 и s2 делят 2–3 места
     s = hit(s, 's3', targets[0]!); // призрак
+    s = hit(s, 's0', targets[1]!);
     const before = s.players.map((x) => x.cash);
     s = advance(s, g.playEnd)!.state;
     expect(s.minigame!.stage).toBe('results');
@@ -472,5 +473,26 @@ describe('мини-игра «Географ»', () => {
     const r = s.minigame!.results!;
     expect(r.find((x) => x.seat === 's0')!.participated).toBe(true);
     expect(r.find((x) => x.seat === 's1')!.participated).toBe(false);
+  });
+});
+
+describe('предмет «Билет»', () => {
+  it('вместо броска: перелёт в выбранный аэропорт, зарплата за «Старт», предмет расходуется; не аэропорт — отказ', () => {
+    let s = newMatch();
+    s.players[0]!.items = ['ticket'];
+    expect(fail(s, 's0', { type: 'USE_TICKET', tile: 7 })).toBe('badTicketTile');
+    expect(fail(s, 's1', { type: 'USE_TICKET', tile: 6 })).toBe('notYourTurn');
+    s = act(s, 's0', { type: 'USE_TICKET', tile: 15 });
+    expect(p(s, 's0').position).toBe(15);
+    expect(p(s, 's0').items).toEqual([]);
+    expect(s.turn.rolled).toBe(true);
+    expect(s.phase).toBe('PURCHASE');
+    let t = newMatch();
+    t.players[0]!.position = 30;
+    t.players[0]!.items = ['ticket'];
+    t = act(t, 's0', { type: 'USE_TICKET', tile: 6 });
+    expect(p(t, 's0').position).toBe(6);
+    expect(cash(t, 's0')).toBe(1700);
+    expect(fail(t, 's0', { type: 'USE_TICKET', tile: 15 })).toBe('wrongPhase'); // ход уже сделан
   });
 });

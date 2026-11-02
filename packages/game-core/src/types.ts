@@ -351,6 +351,7 @@ export type Command =
   | { type: 'DECLINE_DUEL'; offerId: number }
   | { type: 'CANCEL_DUEL' }
   | { type: 'PLACE_CONE'; tile: number }
+  | { type: 'USE_TICKET'; tile: number }
   | { type: 'REPLACE_ITEM'; drop: number | null }
   | { type: 'GHOST_TRAP'; tile: number }
   | { type: 'GHOST_BLOCK'; target: SeatId; tile: number }

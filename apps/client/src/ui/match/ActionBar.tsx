@@ -10,7 +10,7 @@ import { currentSeat, useMatch, useMe } from '../hooks';
 import { specialColor } from '../../render/tileArt';
 import { TileIcon } from '../TileIcon';
 
-const ITEM_ICON: Record<ItemKind, string> = { shield: '🛡️', discount: '🏷️', cone: '🚧' };
+const ITEM_ICON: Record<ItemKind, string> = { shield: '🛡️', discount: '🏷️', cone: '🚧', ticket: '🎫' };
 
 /** Main contextual action: roll / end turn / buy / pay. */
 function usePrimary() {
@@ -94,6 +94,7 @@ function Items() {
       </div>
     );
   }
+  const preRoll = currentSeat(m) === me.seat && m.phase === 'PRE_ROLL';
   const slots = Array.from({ length: RULESET.inventorySlots }, (_, i) => me.items[i] ?? null);
   return (
     <div className="items">
@@ -103,8 +104,8 @@ function Items() {
             key={i}
             className="slot"
             title={`${ITEM_INFO[it].name}: ${ITEM_INFO[it].description}${it === 'cone' && !calm ? ' (ставится в свой ход)' : ''}`}
-            disabled={it !== 'cone' || !calm}
-            onClick={() => it === 'cone' && set({ placing: 'cone', sheet: null })}
+            disabled={it === 'cone' ? !calm : it === 'ticket' ? !preRoll : true}
+            onClick={() => (it === 'cone' || it === 'ticket') && set({ placing: it, sheet: null })}
             data-testid={`item-${it}`}
           >
             <span>{ITEM_ICON[it]}</span>

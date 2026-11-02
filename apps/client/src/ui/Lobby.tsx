@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { RULESET } from '@pb/content';
 import type { RoomSettings } from '@pb/protocol';
 import { api } from '../net/connection';
-import { AVATAR_NAMES, AVATARS } from '../render/pixelArt';
 import { toast, useStore } from '../state/store';
-import { Portrait } from './Portrait';
+import { AVATAR_NAMES, Portrait } from './Portrait';
 
 const SEAT_COLORS = ['#e2574c', '#2a9d9a', '#e8a33a', '#8a52c9'];
 
@@ -85,7 +84,7 @@ export function Lobby() {
         <div className="section">
           <div className="muted">Ваш персонаж</div>
           <div className="avatar-row">
-            {AVATARS.map((_, a) => (
+            {AVATAR_NAMES.map((_, a) => (
               <button
                 key={a}
                 className={`avatar-pick ${me?.avatar === a ? 'on' : ''}`}
@@ -93,7 +92,7 @@ export function Lobby() {
                 title={takenAvatars.has(a) ? 'Занят' : AVATAR_NAMES[a]}
                 onClick={() => api.avatar(a)}
               >
-                <Portrait avatar={a} color="#6b5aa0" size={44} />
+                <Portrait avatar={a} color="#8b55e6" size={48} />
               </button>
             ))}
           </div>

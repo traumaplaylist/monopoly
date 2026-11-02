@@ -2,7 +2,7 @@ import { GROUPS, GROUP_ORDER, groupTiles, WORLD, RULESET } from '@pb/content';
 import { useStore } from '../../state/store';
 import { money } from '../format';
 import { acting, currentSeat, useMatch } from '../hooks';
-import { JellyBadge } from '../JellyBadge';
+import { Portrait } from '../Portrait';
 
 export function PlayerCards() {
   const m = useMatch();
@@ -23,7 +23,7 @@ export function PlayerCards() {
             style={{ ['--pc' as string]: p.color }}
             data-testid={`player-${seat}`}
           >
-            <JellyBadge color={p.color} ghost={p.role === 'ghost'} size={52} />
+            <Portrait avatar={p.avatar} color={p.color} ghost={p.role === 'ghost'} size={52} />
             <div className="pinfo">
               <div className="pname">
                 {seat === me ? 'Ты' : p.name}

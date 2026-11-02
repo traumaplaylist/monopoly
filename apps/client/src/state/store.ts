@@ -38,7 +38,7 @@ interface UiState {
   selectedTile: number | null;
   sheet: Sheet;
   /** Tile placement mode for cones / ghost traps / ghost blocks. */
-  placing: 'cone' | 'ghostTrap' | 'ghostBlock' | null;
+  placing: 'cone' | 'ticket' | 'ghostTrap' | 'ghostBlock' | null;
   toast: { text: string; kind: 'error' | 'info'; id: number } | null;
   chanceCard: { id: string; seat: SeatId; seq: number } | null;
   prefs: Prefs;

@@ -37,6 +37,7 @@ export const CommandSchema: z.ZodType<Command> = z.discriminatedUnion('type', [
   z.object({ type: z.literal('DECLINE_DUEL'), offerId: int }),
   z.object({ type: z.literal('CANCEL_DUEL') }),
   z.object({ type: z.literal('PLACE_CONE'), tile }),
+  z.object({ type: z.literal('USE_TICKET'), tile }),
   z.object({ type: z.literal('REPLACE_ITEM'), drop: int.min(0).max(5).nullable() }),
   z.object({ type: z.literal('GHOST_TRAP'), tile }),
   z.object({ type: z.literal('GHOST_BLOCK'), target: z.string().max(16), tile }),

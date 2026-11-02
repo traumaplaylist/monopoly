@@ -43,9 +43,9 @@ export function Home() {
     <div className="home">
       <div className="home-card panel">
         <div className="logo">
-          <span className="logo-mark">▦</span>
+          <img className="logo-img" src="icons/fluent/plane.png" alt="" />
           <div>
-            <h1>МЕГАПОЛИС</h1>
+            <h1>ВОКРУГ СВЕТА</h1>
             <p>Party Board · онлайн-стол на четверых</p>
           </div>
         </div>

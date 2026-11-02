@@ -1,5 +1,5 @@
 // Chance deck. Effects are data; the engine interprets them.
-export type ItemKind = 'shield' | 'discount' | 'cone';
+export type ItemKind = 'shield' | 'discount' | 'cone' | 'ticket';
 
 export type ChanceEffect =
   | { kind: 'money'; amount: number }
@@ -57,6 +57,8 @@ export const CHANCE_CARDS: readonly ChanceCard[] = [
   { id: 'item-cone', title: 'Дорожный конус', text: 'Получите конус-ловушку.', effect: { kind: 'item', item: 'cone' } },
   { id: 'item-discount-2', title: 'Карта лояльности отелей', text: 'Получите скидку на аренду.', effect: { kind: 'item', item: 'discount' } },
   { id: 'item-shield-2', title: 'Оберег из лавки', text: 'Получите щит.', effect: { kind: 'item', item: 'shield' } },
+  { id: 'item-ticket', title: 'Открытый билет', text: 'Получите билет: в свой ход перед броском можно улететь в любой аэропорт.', effect: { kind: 'item', item: 'ticket' } },
+  { id: 'item-ticket-2', title: 'Мили накопились', text: 'Получите билет на самолёт.', effect: { kind: 'item', item: 'ticket' } },
 ];
 
 export const ITEM_INFO: Record<ItemKind, { name: string; description: string }> = {
@@ -66,4 +68,8 @@ export const ITEM_INFO: Record<ItemKind, { name: string; description: string }> 
   },
   discount: { name: 'Скидка', description: 'Перед оплатой аренды можно уменьшить её на 50%.' },
   cone: { name: 'Конус', description: 'Поставьте на обычную клетку: следующий соперник, вставший на неё, платит банку 30.' },
+  ticket: {
+    name: 'Билет',
+    description: 'В свой ход вместо броска кубиков перелетите в любой аэропорт (зарплата за «Старт», если пролетели через него).',
+  },
 };

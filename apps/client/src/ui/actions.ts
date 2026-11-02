@@ -11,6 +11,11 @@ export function onTileClick(index: number): void {
     void send({ type: 'PLACE_CONE', tile: index });
     return;
   }
+  if (placing === 'ticket') {
+    set({ placing: null });
+    void send({ type: 'USE_TICKET', tile: index });
+    return;
+  }
   if (placing === 'ghostTrap') {
     set({ placing: null });
     void send({ type: 'GHOST_TRAP', tile: index });

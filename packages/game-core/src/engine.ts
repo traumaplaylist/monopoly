@@ -377,6 +377,18 @@ function handle(ctx: Ctx, seat: SeatId, cmd: Command): void {
       emit(ctx, { t: 'trap', seat, tile: cmd.tile, action: 'placed', by: seat });
       return;
     }
+    case 'USE_TICKET': {
+      // Instead of rolling: fly forward to any airport; normal landing rules apply.
+      requireTurn(s, seat, ['PRE_ROLL']);
+      const k = me.items.indexOf('ticket');
+      ensure(k >= 0, 'noItem');
+      ensure(MAP.tiles[cmd.tile]?.group === 'air' && cmd.tile !== me.position, 'badTicketTile');
+      me.items.splice(k, 1);
+      emit(ctx, { t: 'item', seat, item: 'ticket', action: 'used' });
+      s.turn.rolled = true;
+      moveBy(ctx, me, (cmd.tile - me.position + BOARD_SIZE) % BOARD_SIZE);
+      return proceed(ctx);
+    }
     case 'REPLACE_ITEM': {
       const pi = me.pendingItem;
       ensure(pi, 'noPendingItem');

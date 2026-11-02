@@ -212,7 +212,7 @@ export class RoomService {
     this.leaveLobbyIfAny(guestId);
     const g = this.store.guest(guestId)!;
     const used = new Set(rec.seats.filter((s) => s.guestId).map((s) => s.avatar));
-    Object.assign(free, { guestId, name: g.name, avatar: [0, 1, 2, 3, 4, 5].find((a) => !used.has(a)) ?? 0, ready: false, isBot: false, lastSeen: this.clock.now() });
+    Object.assign(free, { guestId, name: g.name, avatar: [0, 1, 2, 3, 4, 5, 6, 7].find((a) => !used.has(a)) ?? 0, ready: false, isBot: false, lastSeen: this.clock.now() });
     this.store.updateGuest(guestId, { room_id: rec.roomId });
     this.commit(rt);
     return rec;
