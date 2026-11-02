@@ -4,6 +4,8 @@ import '@fontsource/rubik/cyrillic-800.css';
 import '@fontsource/rubik/latin-500.css';
 import '@fontsource/rubik/latin-700.css';
 import '@fontsource/rubik/latin-800.css';
+import '@fontsource/oswald/cyrillic-700.css';
+import '@fontsource/oswald/latin-700.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, connect, debugDropConnection, send } from './net/connection';
@@ -22,7 +24,7 @@ connect();
 initNative();
 
 // Canvas tile labels need the font; wait for it (max 2 s).
-const fonts = Promise.all(['500 16px Rubik', '700 16px Rubik', '800 16px Rubik'].map((f) => document.fonts.load(f, 'АБВ')));
+const fonts = Promise.all(['500 16px Rubik', '700 16px Rubik', '800 16px Rubik', '700 16px Oswald'].map((f) => document.fonts.load(f, 'АБВ')));
 void Promise.race([Promise.all([fonts, loadManifest()]), new Promise((r) => setTimeout(r, 2000))]).finally(() => {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

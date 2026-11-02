@@ -1,6 +1,6 @@
-import { Canvas, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useState } from 'react';
-import { PCFShadowMap, Vector3 } from 'three';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { DoubleSide, PCFShadowMap, Vector3 } from 'three';
 import type { OrthographicCamera } from 'three';
 import { Board } from './Board';
 import { AnchorTracker } from './BoardAnchor';
@@ -9,63 +9,109 @@ import { Pieces } from './Pieces';
 import { Tokens } from './Tokens';
 import { PROFILES, pickProfile } from './layout';
 import type { Profile } from './layout';
+import { QUALITY, SHADOWS } from './quality';
+import { observeStage, stageRect } from './stage';
+import { createLeavesTexture } from './tileArt';
 
 /** Nearly top-down view with a small tilt (radians from vertical). */
-const TILT = 0.42;
+const TILT = 0.56;
 const CAM_DIST = 40;
 
-/** Orthographic fit: all four corners visible without zoom. */
+/**
+ * The canvas covers the whole screen (the wooden table runs under the UI); the board is fitted
+ * into the free «stage» rectangle of the layout with an off-centre orthographic frustum.
+ */
 function CameraRig({ profile }: { profile: Profile }) {
-  const { camera, size } = useThree();
-  useEffect(() => {
-    const cam = camera as OrthographicCamera;
+  const { camera, size, invalidate } = useThree();
+  const last = useRef('');
+  useEffect(() => observeStage(() => invalidate()), [invalidate]);
+  useFrame(() => {
+    const st = stageRect(size.width, size.height);
+    const key = `${size.width}x${size.height}:${st.x},${st.y},${st.w},${st.h}:${profile.id}`;
+    if (key === last.current) return;
+    last.current = key;
+    const cam = camera as OrthographicCamera & { manual?: boolean };
+    cam.manual = true; // R3F must not reset our off-centre frustum on resize
     cam.position.set(0, CAM_DIST * Math.cos(TILT), CAM_DIST * Math.sin(TILT));
     cam.lookAt(0, 0, 0);
     cam.updateMatrixWorld();
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    const m = profile.id === 'portrait' ? 0.15 : 0.35;
+    const m = profile.id === 'portrait' ? 0.25 : 0.45;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (const y of [0, 0.9]) {
       const p = new Vector3(sx * (profile.width / 2 + m), y, sz * (profile.height / 2 + m)).applyMatrix4(cam.matrixWorldInverse);
       minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
       minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
     }
-    cam.left = -size.width / 2;
-    cam.right = size.width / 2;
-    cam.top = size.height / 2;
-    cam.bottom = -size.height / 2;
-    cam.zoom = Math.min(size.width / (maxX - minX), size.height / (maxY - minY));
-    // Centre the board's projected bounding box.
-    const cy = (minY + maxY) / 2;
-    cam.position.y += cy * Math.sin(TILT);
-    cam.position.z -= cy * Math.cos(TILT);
+    cam.zoom = Math.min(st.w / (maxX - minX), st.h / (maxY - minY));
+    // Centre of the projected board box (view space) goes to the centre of the stage rectangle.
+    // three.js: view x of pixel px = (left + right) / 2 + (px - W / 2) / zoom (same for y).
+    const cxv = (minX + maxX) / 2;
+    const cyv = (minY + maxY) / 2;
+    const cx = cxv - (st.x + st.w / 2 - size.width / 2) / cam.zoom;
+    const cy = cyv - (size.height / 2 - (st.y + st.h / 2)) / cam.zoom;
+    cam.left = cx - size.width / 2;
+    cam.right = cx + size.width / 2;
+    cam.top = cy + size.height / 2;
+    cam.bottom = cy - size.height / 2;
     cam.updateProjectionMatrix();
-  }, [camera, size.width, size.height, profile]);
+  });
   return null;
+}
+
+/** Invisible plane high above the table: its leaf mask only shows up in the sun's shadow map. */
+function LeafGobo({ profile }: { profile: Profile }) {
+  const tex = useMemo(createLeavesTexture, []);
+  const w = profile.width * 1.15;
+  const h = profile.height * 1.15;
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[profile.width * 0.1, 4, profile.height * 0.02]} castShadow raycast={() => null}>
+      <planeGeometry args={[w, h]} />
+      <meshBasicMaterial map={tex} alphaTest={0.5} transparent colorWrite={false} depthWrite={false} shadowSide={DoubleSide} />
+    </mesh>
+  );
+}
+
+function Sun({ profile }: { profile: Profile }) {
+  const span = Math.max(profile.width, profile.height) / 2 + 6;
+  const res = QUALITY === 'high' ? 2048 : 1024;
+  return (
+    <directionalLight
+      color="#fff0d8"
+      position={[-8, 16, 6]}
+      intensity={3.3}
+      castShadow
+      shadow-mapSize={[res, res]}
+      shadow-camera-left={-span}
+      shadow-camera-right={span}
+      shadow-camera-top={span}
+      shadow-camera-bottom={-span}
+      shadow-camera-near={1}
+      shadow-camera-far={60}
+      shadow-bias={-0.0004}
+      shadow-normalBias={0.02}
+      shadow-radius={QUALITY === 'high' ? 5 : 3}
+    />
+  );
 }
 
 function SceneContent() {
   const { size } = useThree();
-  const profile = PROFILES[pickProfile(size.width, size.height)];
+  const st = stageRect(size.width, size.height);
+  const profile = PROFILES[pickProfile(st.w, st.h)];
   return (
     <>
       <CameraRig profile={profile} />
       <AnchorTracker profile={profile} />
-      <hemisphereLight args={['#fff4e6', '#4a3a5e', 1.1]} />
-      <directionalLight
-        position={[-6, 14, 8]}
-        intensity={1.8}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-left={-10}
-        shadow-camera-right={10}
-        shadow-camera-top={10}
-        shadow-camera-bottom={-10}
-        shadow-bias={-0.0006}
-      />
-      <Board profile={profile} />
-      <Pieces profile={profile} />
-      <Tokens profile={profile} />
-      <Dice profile={profile} />
+      <hemisphereLight args={['#fff4e2', '#a8743f', 0.85]} />
+      <ambientLight color="#ffe6c8" intensity={0.25} />
+      <Sun profile={profile} />
+      <LeafGobo profile={profile} />
+      <group position={[0, 0, 0]}>
+        <Board profile={profile} />
+        <Pieces profile={profile} />
+        <Tokens profile={profile} />
+        <Dice profile={profile} />
+      </group>
     </>
   );
 }
@@ -81,7 +127,7 @@ export function webglAvailable(): boolean {
 
 export function Scene() {
   const [ok] = useState(webglAvailable);
-  const dpr = useMemo<[number, number]>(() => [1, Math.min(2, window.devicePixelRatio || 1)], []);
+  const dpr = useMemo<[number, number]>(() => [1, Math.min(QUALITY === 'high' ? 2 : 1.75, window.devicePixelRatio || 1)], []);
   if (!ok) {
     return (
       <div className="webgl-missing">
@@ -91,8 +137,8 @@ export function Scene() {
     );
   }
   return (
-    <Canvas orthographic shadows={{ type: PCFShadowMap }} dpr={dpr} camera={{ position: [0, 30, 15], near: 0.1, far: 200, zoom: 40 }} gl={{ antialias: true }}>
-      <color attach="background" args={['#3b3346']} />
+    <Canvas frameloop="demand" orthographic shadows={SHADOWS ? { type: PCFShadowMap } : false} dpr={dpr} camera={{ position: [0, 30, 15], near: 0.1, far: 200, zoom: 40 }} gl={{ antialias: true }}>
+      <color attach="background" args={['#c68c55']} />
       <SceneContent />
     </Canvas>
   );

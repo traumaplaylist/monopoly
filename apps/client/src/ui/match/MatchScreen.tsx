@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { MEGAPOLIS } from '@pb/content';
 import { Scene } from '../../render/Scene';
+import { setCanvasElement, setStageElement } from '../../render/stage';
 import { useStore } from '../../state/store';
 import { MinigameOverlay } from '../minigames/MinigameOverlay';
 import { Sheets } from '../sheets/Sheets';
@@ -18,7 +19,7 @@ function TopBar() {
   return (
     <header className="topbar">
       <div className="badge-title">
-        <span className="logo-mark">▦</span> {MEGAPOLIS.name.toUpperCase()}
+        <span className="logo-mark">◆</span> {MEGAPOLIS.name.toUpperCase()}
       </div>
       <div className="badge-round" data-testid="round">
         Раунд <b>{Math.min(m.round, m.settings.maxRounds)}</b> / {m.settings.maxRounds}
@@ -43,6 +44,9 @@ export function MatchScreen() {
   useTurnCue();
   return (
     <div className="match">
+      <div className="table-layer" ref={setCanvasElement}>
+        <Scene />
+      </div>
       <TopBar />
       <aside className="side">
         <PlayerCards />
@@ -50,8 +54,7 @@ export function MatchScreen() {
           <TileSummary />
         </div>
       </aside>
-      <main className="stage">
-        <Scene />
+      <main className="stage" ref={setStageElement}>
         <Banner />
         <Prompt />
         <ChanceCardPopup />

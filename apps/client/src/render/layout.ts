@@ -21,11 +21,11 @@ function profile(id: ProfileId, cw: number, cd: number, tw: number, sh: number):
 
 export const PROFILES: Record<ProfileId, Profile> = {
   landscape: profile('landscape', 1.9, 1.6, 1.3, 0.92),
-  portrait: profile('portrait', 1.45, 1.25, 0.9, 1.75),
+  portrait: profile('portrait', 1.22, 1.25, 0.97, 1.75),
 };
 
 export const SIDE_TILES = 7;
-export const TILE_HEIGHT = 0.2;
+export const TILE_HEIGHT = 0.07;
 export const GAP = 0.06;
 export const STRIP = 0.24;
 

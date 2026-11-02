@@ -550,6 +550,20 @@ export class RoomService {
       case 'minigame':
         s.minigameRequested = true;
         break;
+      case 'showcase': {
+        // Screenshot dressing for visual reviews (dev only): owners, upgrades, spread tokens.
+        const seats = s.players.map((p) => p.seat);
+        const levels = [1, 0, 2, 0, 3, 1, 0, 0, 2, 0, 1, 0];
+        let k = 0;
+        s.tiles.forEach((o, i) => {
+          if (!o || k >= levels.length || i % 3 === 2) return;
+          s.tiles[i] = { owner: seats[k % seats.length]!, level: levels[k]!, mortgaged: k === 7 };
+          k += 1;
+        });
+        const spots = [0, 6, 13, 21];
+        s.players.forEach((p, i) => (p.position = spots[i % spots.length]!));
+        break;
+      }
       case 'endSoon':
         s.settings.maxRounds = s.round;
         break;

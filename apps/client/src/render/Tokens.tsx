@@ -1,12 +1,13 @@
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import type { Group } from 'three';
 import type { PublicPlayer } from '@pb/game-core';
+import { currentSeat } from '../ui/hooks';
 import { get, set, useStore } from '../state/store';
 import { Model } from './assets';
 import { TILE_HEIGHT, tileRect } from './layout';
 import type { Profile } from './layout';
-import { drawCharacter, drawGhost, spriteTexture } from './pixelArt';
+import { JellyFigure } from './jelly';
 
 const STEP_TIME = 0.16;
 
@@ -18,33 +19,12 @@ export function tileSpot(index: number, slot: number, profile: Profile): [number
   return [r.x + fx * r.w, TILE_HEIGHT, r.z + fz * r.d];
 }
 
-function Sprite({ player }: { player: PublicPlayer }) {
-  const ghost = player.role === 'ghost';
-  const tex = ghost ? spriteTexture('ghost', drawGhost) : spriteTexture(`c${player.avatar}:${player.color}`, () => drawCharacter(player.avatar, player.color));
-  const h = ghost ? 0.62 : 0.86;
-  const w = ghost ? 0.56 : 0.55;
-  return (
-    <group>
-      {/* stand + simple blob shadow */}
-      <mesh position={[0, 0.03, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.2, 0.22, 0.06, 20]} />
-        <meshStandardMaterial color={ghost ? '#7b5bc4' : player.color} roughness={0.5} />
-      </mesh>
-      <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.27, 20]} />
-        <meshBasicMaterial color="#000" transparent opacity={0.22} depthWrite={false} />
-      </mesh>
-      <sprite position={[0, 0.06 + h / 2, 0]} scale={[w, h, 1]}>
-        <spriteMaterial map={tex} transparent alphaTest={0.5} opacity={ghost ? 0.85 : 1} />
-      </sprite>
-    </group>
-  );
-}
-
 function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; profile: Profile }) {
   const ref = useRef<Group>(null);
   const move = useStore((s) => s.moves.find((m) => m.seat === player.seat));
   const anim = useRef<{ path: number[]; t: number; seg: number } | null>(null);
+  const active = useStore((s) => (s.match ? currentSeat(s.match) === player.seat : false));
+  const invalidate = useThree((s) => s.invalidate);
 
   useEffect(() => {
     if (!move) return;
@@ -54,7 +34,8 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
     for (let k = 0; k <= n; k++) path.push((((move.from + dir * k) % 32) + 32) % 32);
     if (path[path.length - 1] !== move.to) path.push(move.to);
     anim.current = { path, t: 0, seg: 0 };
-  }, [move]);
+    invalidate();
+  }, [move, invalidate]);
 
   useFrame((_, dt) => {
     const g = ref.current;
@@ -62,12 +43,18 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
     const a = anim.current;
     if (!a) {
       const [x, y, z] = tileSpot(player.position, slot, profile);
+      if (Math.abs(x - g.position.x) + Math.abs(z - g.position.z) < 0.002) {
+        g.position.set(x, y, z);
+        return;
+      }
       const k = Math.min(1, dt * 10);
       g.position.x += (x - g.position.x) * k;
       g.position.z += (z - g.position.z) * k;
       g.position.y = y;
+      invalidate();
       return;
     }
+    invalidate();
     a.t += Math.min(dt, 0.05);
     const k = Math.min(1, a.t / STEP_TIME);
     const [x0, y0, z0] = tileSpot(a.path[a.seg]!, slot, profile);
@@ -88,9 +75,14 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
 
   const initial = useRef(tileSpot(player.position, slot, profile));
   if (player.role === 'left') return null;
+  const ghost = player.role === 'ghost';
+  const scale = profile.id === 'portrait' ? 0.95 : 1.25;
   return (
     <group ref={ref} position={initial.current}>
-      <Model slot={player.role === 'ghost' ? 'ghost' : 'token'} tint={player.color} fallback={<Sprite player={player} />} />
+      {/* Whose turn: the figure stands a bit taller (static, so idle frames are not redrawn). */}
+      <group scale={active ? scale * 1.12 : scale} rotation={[-0.45, (slot - 1.5) * 0.12, 0]}>
+        <Model slot={ghost ? 'ghost' : 'token'} tint={player.color} fallback={<JellyFigure color={player.color} ghost={ghost} />} />
+      </group>
     </group>
   );
 }

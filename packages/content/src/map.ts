@@ -29,14 +29,14 @@ export interface TileDef {
 }
 
 export const GROUPS: Record<GroupId, GroupDef> = {
-  cozy: { id: 'cozy', name: 'Уют', color: '#c8743c', upgradeCost: 50 },
-  fun: { id: 'fun', name: 'Досуг', color: '#d9434b', upgradeCost: 50 },
-  night: { id: 'night', name: 'Ночная жизнь', color: '#2a9d9a', upgradeCost: 100 },
-  trade: { id: 'trade', name: 'Торговля', color: '#e8b931', upgradeCost: 100 },
-  culture: { id: 'culture', name: 'Культура', color: '#8a52c9', upgradeCost: 120 },
-  green: { id: 'green', name: 'Зелёный квартал', color: '#3f9d4e', upgradeCost: 120 },
-  port: { id: 'port', name: 'Транспорт', color: '#3a6fc4', upgradeCost: 150 },
-  prestige: { id: 'prestige', name: 'Престиж', color: '#d6487f', upgradeCost: 150 },
+  cozy: { id: 'cozy', name: 'Уют', color: '#ff8a1f', upgradeCost: 50 },
+  fun: { id: 'fun', name: 'Досуг', color: '#f23d5c', upgradeCost: 50 },
+  night: { id: 'night', name: 'Ночная жизнь', color: '#13b5a6', upgradeCost: 100 },
+  trade: { id: 'trade', name: 'Торговля', color: '#ffc21a', upgradeCost: 100 },
+  culture: { id: 'culture', name: 'Культура', color: '#8b55e6', upgradeCost: 120 },
+  green: { id: 'green', name: 'Зелёный квартал', color: '#58c22c', upgradeCost: 120 },
+  port: { id: 'port', name: 'Транспорт', color: '#2f7ff0', upgradeCost: 150 },
+  prestige: { id: 'prestige', name: 'Престиж', color: '#ff4fa8', upgradeCost: 150 },
 };
 
 export const GROUP_ORDER: GroupId[] = ['cozy', 'fun', 'night', 'trade', 'culture', 'green', 'port', 'prestige'];
