@@ -7,7 +7,8 @@ const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
 
 export default defineConfig({
   testDir: 'tests/e2e',
-  timeout: 10 * 60_000,
+  // 20 min: the full-screen V2 scene is slow on CPU WebGL (SwiftShader) in headless runs.
+  timeout: 20 * 60_000,
   workers: 1,
   reporter: [['list']],
   use: {
