@@ -19,8 +19,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     host: env.HOST ?? (devMode ? '0.0.0.0' : '127.0.0.1'),
     dbPath: env.DB_PATH ?? path.resolve(process.cwd(), 'data', 'party-board.sqlite'),
     devMode,
-    allowedOrigins: (env.ALLOWED_ORIGINS ?? 'capacitor://localhost,https://localhost,http://localhost')
-      .split(',')
+    allowedOrigins: [
+      ...(env.ALLOWED_ORIGINS ?? 'capacitor://localhost,https://localhost,http://localhost').split(','),
+      // Render sets its public URL; the game page served from there must be allowed (and the
+      // Android/iOS apps pointing at it).
+      env.RENDER_EXTERNAL_URL ?? '',
+    ]
       .map((x) => x.trim())
       .filter(Boolean),
     staticDir: env.STATIC_DIR ? path.resolve(env.STATIC_DIR) : null,

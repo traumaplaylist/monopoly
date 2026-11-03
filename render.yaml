@@ -1,0 +1,23 @@
+# Render Blueprint: one free web service = game server + the built web client.
+# Dashboard → New → Blueprint → this repository / branch. Details: docs/DEPLOY.md
+services:
+  - type: web
+    name: party-board
+    runtime: node
+    plan: free
+    branch: claude/browser-economy-board-game-aspm4s
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: HOST
+        value: 0.0.0.0
+      # npm start runs inside apps/server, so paths are relative to it.
+      - key: STATIC_DIR
+        value: ../client/dist
+      # Free plan: the disk is wiped on every restart/spin-down — rooms live only while the server is awake.
+      - key: DB_PATH
+        value: /tmp/party-board.sqlite
