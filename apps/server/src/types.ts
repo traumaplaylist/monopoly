@@ -1,3 +1,4 @@
+import type { Appearance } from '@pb/content';
 import type { MatchState, SeatId } from '@pb/game-core';
 import type { CommandAck, RoomSettings } from '@pb/protocol';
 
@@ -6,6 +7,8 @@ export interface SeatRecord {
   guestId: string | null;
   name: string;
   avatar: number;
+  /** Figure look; optional so rooms saved before 03.11.2026 still load (defaults per seat). */
+  appearance?: Appearance;
   ready: boolean;
   isBot: boolean;
   /** Last time the seat had an active connection (ms). */

@@ -1,3 +1,4 @@
+import type { Appearance } from '@pb/content';
 import type { ChanceCard, ItemKind } from '@pb/content';
 
 export const SCHEMA_VERSION = 1;
@@ -22,6 +23,8 @@ export interface PlayerState {
   seat: SeatId;
   name: string;
   avatar: number;
+  /** Figure look (parts); optional so matches saved before 03.11.2026 still load. */
+  appearance?: Appearance;
   color: string;
   role: Role;
   cash: number;

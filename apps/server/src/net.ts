@@ -4,7 +4,7 @@ import path from 'node:path';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import {
-  AvatarSchema,
+  AppearanceSchema, AvatarSchema,
   CreateRoomSchema,
   EV,
   HelloSchema,
@@ -147,6 +147,7 @@ export function createGameServer(config: ServerConfig, clock: Clock): GameServer
     on(EV.join, JoinRoomSchema, (data, g) => ({ ok: true, code: service.join(g, data.code).code }));
     on(EV.ready, ReadySchema, (data, g) => service.setReady(g, data.ready));
     on(EV.avatar, AvatarSchema, (data, g) => service.setAvatar(g, data.avatar));
+    on(EV.appearance, AppearanceSchema, (data, g) => service.setAppearance(g, data.appearance));
     on(EV.settings, RoomSettingsSchema, (data, g) => service.setSettings(g, data));
     on(EV.start, null, (_d, g) => service.start(g));
     on(EV.leave, null, (_d, g) => service.leave(g));

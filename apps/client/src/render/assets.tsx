@@ -9,7 +9,8 @@ import type { ReactNode } from 'react';
 import { Color, Mesh, MeshStandardMaterial } from 'three';
 import type { Object3D } from 'three';
 
-export type ModelSlot = 'token' | 'ghost' | 'upgrade1' | 'upgrade2' | 'upgrade3' | 'cone' | 'tree' | 'deck';
+/** Fixed slots plus figure parts: body-<shape> and hat-<hat> (see packages/content/src/appearance.ts). */
+export type ModelSlot = 'token' | 'ghost' | 'upgrade1' | 'upgrade2' | 'upgrade3' | 'cone' | 'tree' | 'deck' | `body-${string}` | `hat-${string}`;
 
 export interface AssetManifest {
   models: Partial<Record<ModelSlot, string>>;

@@ -1,6 +1,8 @@
 // Wire protocol between client and server. All inbound payloads are validated with these schemas.
 import { z } from 'zod';
 import type { Command, PrivateView, PublicMatch, SeatId } from '@pb/game-core';
+import { BODY_COLORS, BODY_MATERIALS, BODY_SHAPES, FACES, HATS } from '@pb/content';
+import type { Appearance } from '@pb/content';
 
 export const PROTOCOL_VERSION = 1;
 
@@ -82,11 +84,22 @@ export const CreateRoomSchema = z.object({ settings: RoomSettingsSchema.optional
 export const JoinRoomSchema = z.object({ code: RoomCodeSchema });
 export const ReadySchema = z.object({ ready: z.boolean() });
 export const AvatarSchema = z.object({ avatar: int.min(0).max(7) });
+/** Figure look: every part from a closed list; the server rejects anything else. */
+export const AppearanceSchema = z.object({
+  appearance: z.object({
+    body: z.enum(BODY_SHAPES),
+    color: z.enum(BODY_COLORS),
+    material: z.enum(BODY_MATERIALS),
+    hat: z.enum(HATS),
+    face: z.enum(FACES),
+  }),
+});
 
 export interface SeatPublic {
   seat: SeatId;
   name: string;
   avatar: number;
+  appearance: Appearance;
   ready: boolean;
   connected: boolean;
   isBot: boolean;
@@ -126,6 +139,7 @@ export const EV = {
   join: 'room:join',
   ready: 'room:ready',
   avatar: 'room:avatar',
+  appearance: 'room:appearance',
   settings: 'room:settings',
   start: 'room:start',
   leave: 'room:leave',

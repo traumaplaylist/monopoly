@@ -1,3 +1,4 @@
+import type { Appearance } from '@pb/content';
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import type { Command } from '@pb/game-core';
@@ -115,6 +116,7 @@ export const api = {
   },
   ready: async (ready: boolean) => report(await emit(EV.ready, { ready })),
   avatar: async (avatar: number) => report(await emit(EV.avatar, { avatar })),
+  appearance: async (appearance: Appearance) => report(await emit(EV.appearance, { appearance })),
   settings: async (s: RoomSettings) => report(await emit(EV.settings, s)),
   start: async () => report(await emit(EV.start)),
   leave: async () => report(await emit(EV.leave)),

@@ -1,6 +1,7 @@
 // Authoritative rules engine for ruleset V1.
 // (state, seat, command, serverNow) -> new state + events. Pure: no I/O, no real clock, seeded RNG inside state.
-import { CHANCE_CARDS, GROUPS, RULESET, RULES_VERSION, groupTiles, pct } from '@pb/content';
+import { CHANCE_CARDS, GROUPS, RULESET, RULES_VERSION, defaultAppearance, groupTiles, pct, sanitizeAppearance } from '@pb/content';
+import type { Appearance } from '@pb/content';
 import type { ItemKind } from '@pb/content';
 import { RuleError, commit, emit, ensure, makeCtx } from './ctx';
 import type { Ctx } from './ctx';
@@ -48,6 +49,7 @@ export interface SeatInit {
   seat: SeatId;
   name: string;
   avatar: number;
+  appearance?: Appearance;
 }
 
 export interface CreateMatchOptions {
@@ -73,6 +75,7 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
     seat: x.seat,
     name: x.name,
     avatar: x.avatar,
+    appearance: sanitizeAppearance(x.appearance, defaultAppearance(i)),
     color: PLAYER_COLORS[i % PLAYER_COLORS.length]!,
     role: 'alive',
     cash: RULESET.startCash,

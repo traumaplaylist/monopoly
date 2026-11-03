@@ -1,6 +1,5 @@
 // «Мармеладные» фигурки: translucent extruded silhouettes. On high quality they use real glass
 // transmission; on phones a cheap glossy translucent material.
-import { useMemo } from 'react';
 import { Color, ExtrudeGeometry, MeshPhysicalMaterial, OctahedronGeometry, Shape } from 'three';
 import type { BufferGeometry } from 'three';
 import { QUALITY } from './quality';
@@ -83,39 +82,3 @@ export function crystalGeometry(): BufferGeometry {
   return crystalGeo;
 }
 
-let houseGeo: BufferGeometry | null = null;
-let hotelGeo: BufferGeometry | null = null;
-
-function extrudeHouse(w: number, h: number, roof: number, depth: number): BufferGeometry {
-  const s = new Shape();
-  s.moveTo(-w / 2, 0);
-  s.lineTo(w / 2, 0);
-  s.lineTo(w / 2, h);
-  s.lineTo(0, h + roof);
-  s.lineTo(-w / 2, h);
-  s.closePath();
-  const b = 0.018;
-  const g = new ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 3 });
-  g.translate(0, b, -depth / 2);
-  g.computeVertexNormals();
-  return g;
-}
-
-export function houseGeometry(): BufferGeometry {
-  return (houseGeo ??= extrudeHouse(0.16, 0.12, 0.08, 0.14));
-}
-
-export function hotelGeometry(): BufferGeometry {
-  return (hotelGeo ??= extrudeHouse(0.3, 0.26, 0.1, 0.16));
-}
-
-/** One player figure on its little round stand. */
-export function JellyFigure({ color, ghost = false }: { color: string; ghost?: boolean }) {
-  const mat = jellyMaterial(color, ghost);
-  const geo = useMemo(figureGeometry, []);
-  return (
-    <group>
-      <mesh geometry={geo} material={mat} castShadow={!ghost} position={[0, ghost ? 0.06 : 0, 0]} />
-    </group>
-  );
-}

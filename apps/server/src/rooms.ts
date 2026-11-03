@@ -2,7 +2,8 @@
 // All handlers are synchronous: SQLite writes are synchronous and Node runs one handler at a time,
 // so commands of one room are processed strictly sequentially and committed before any ack/broadcast.
 import crypto from 'node:crypto';
-import { GROUP_ORDER, RULESET, WORLD, groupTiles } from '@pb/content';
+import { GROUP_ORDER, RULESET, WORLD, defaultAppearance, groupTiles, sanitizeAppearance } from '@pb/content';
+import type { Appearance } from '@pb/content';
 import { advance, applyCommand, botCommand, createMatch, nextDeadline, privateView, publicView, shiftTime } from '@pb/game-core';
 import type { Command, MatchEvent, SeatId } from '@pb/game-core';
 import type { CommandAck, MatchCommand, RoomPublic, RoomSettings, Snapshot } from '@pb/protocol';
@@ -245,6 +246,18 @@ export class RoomService {
     this.commit(rt);
   }
 
+  /** Figure look (already validated by the zod schema; sanitized again as defence in depth). */
+  setAppearance(guestId: string, appearance: Appearance): void {
+    const { rt, seat } = this.requireLobbySeat(guestId);
+    if (rt.rec.status !== 'lobby' && rt.rec.status !== 'finished') throw new ServiceError('notLobby');
+    seat.appearance = sanitizeAppearance(appearance, this.seatLook(rt.rec, seat));
+    this.commit(rt);
+  }
+
+  private seatLook(rec: RoomRecord, seat: SeatRecord): Appearance {
+    return seat.appearance ?? defaultAppearance(rec.seats.indexOf(seat));
+  }
+
   setSettings(guestId: string, settings: RoomSettings): void {
     const { rt, seat } = this.requireLobbySeat(guestId);
     if (rt.rec.status !== 'lobby') throw new ServiceError('notLobby');
@@ -269,7 +282,7 @@ export class RoomService {
       let bot = 1;
       for (const s of rec.seats) {
         if (s.guestId) continue;
-        const avatar = [0, 1, 2, 3, 4, 5].find((a) => !usedAvatars.has(a)) ?? 0;
+        const avatar = [0, 1, 2, 3, 4, 5, 6, 7].find((a) => !usedAvatars.has(a)) ?? 0;
         usedAvatars.add(avatar);
         Object.assign(s, { name: `Бот ${bot++}`, avatar, isBot: true, ready: true, lastSeen: this.clock.now() });
       }
@@ -284,7 +297,7 @@ export class RoomService {
     rec.match = createMatch({
       matchId: `${rec.roomId.slice(0, 8)}-${rec.matchCount}`,
       seed: crypto.randomInt(0, 2 ** 31),
-      seats: seats.map((s) => ({ seat: s.seat, name: s.name, avatar: s.avatar })),
+      seats: seats.map((s) => ({ seat: s.seat, name: s.name, avatar: s.avatar, appearance: this.seatLook(rec, s) })),
       settings: { minigameEvery: rec.settings.minigameEvery, debug: seats.length !== RULESET.seats || seats.some((s) => s.isBot) },
       now: this.clock.now(),
     });
@@ -576,8 +589,11 @@ export class RoomService {
           if (mg.game.kind === 'reaction' && mg.stage === 'play') mg.game.playEnd = now;
           if (mg.game.kind === 'quiz' && mg.stage === 'play') {
             const x = mg.game.questions[mg.game.q]!;
-            x.inputEnd = Math.min(x.inputEnd, now);
             if (mg.game.shown.length > mg.game.q) x.revealEnd = Math.min(x.revealEnd, now);
+            else {
+              x.inputEnd = Math.min(x.inputEnd, now);
+              x.revealEnd = Math.min(x.revealEnd, now + 300);
+            }
           }
           if (mg.game.kind === 'memory' && mg.stage === 'play') {
             const r = mg.game.rounds[mg.game.round]!;
@@ -605,6 +621,7 @@ export class RoomService {
           seat: s.seat,
           name: s.name,
           avatar: s.avatar,
+          appearance: this.seatLook(rec, s),
           ready: s.ready,
           connected: s.isBot || this.isConnected(s.guestId),
           isBot: s.isBot,

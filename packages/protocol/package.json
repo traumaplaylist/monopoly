@@ -7,6 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@pb/content": "*",
     "@pb/game-core": "*",
     "zod": "^4.6.7"
   }

@@ -4,6 +4,7 @@ import type { RoomSettings } from '@pb/protocol';
 import { api } from '../net/connection';
 import { toast, useStore } from '../state/store';
 import { AVATAR_NAMES, Portrait } from './Portrait';
+import { FigureEditor, useRestoreAppearance } from './FigureEditor';
 
 const SEAT_COLORS = ['#e2574c', '#2a9d9a', '#e8a33a', '#8a52c9'];
 
@@ -39,6 +40,7 @@ export function Lobby() {
     }
   }
   const setSettings = (patch: Partial<RoomSettings>) => api.settings({ ...room.settings, ...patch });
+  useRestoreAppearance(me?.appearance);
   const takenAvatars = new Set(room.seats.filter((s) => s.seat !== seat).map((s) => s.avatar));
 
   return (
@@ -82,7 +84,7 @@ export function Lobby() {
         </div>
 
         <div className="section">
-          <div className="muted">Ваш персонаж</div>
+          <div className="muted">Ваш портрет</div>
           <div className="avatar-row">
             {AVATAR_NAMES.map((_, a) => (
               <button
@@ -97,6 +99,13 @@ export function Lobby() {
             ))}
           </div>
         </div>
+
+        {me && (
+          <div className="section">
+            <div className="muted">Ваша фишка на поле</div>
+            <FigureEditor appearance={me.appearance} seatColor={SEAT_COLORS[Number(me.seat.slice(1))] ?? SEAT_COLORS[0]!} />
+          </div>
+        )}
 
         <div className="section">
           <div className="muted">Общая мини-игра {isHost ? '' : '(настраивает хозяин)'}</div>

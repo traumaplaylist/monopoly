@@ -249,8 +249,12 @@ test('стол на четверых: лобби, ходы, мини-игры, �
   await buyer.page.waitForTimeout(1200);
   await shot(buyer, '18-duel-play');
   await cheat(A, 'skip');
-  for (let i = 0; i < 6 && (await st(A)).match!.minigame?.stage === 'play'; i++) await cheat(A, 'skip');
-  await expect.poll(async () => (await st(A)).match!.minigame?.stage ?? 'done').toBe('results');
+  // The duel game is random (including the 6-question quiz): keep skipping until results.
+  for (let i = 0; i < 30 && (await st(A)).match!.minigame?.stage === 'play'; i++) {
+    await cheat(A, 'skip');
+    await A.page.waitForTimeout(250);
+  }
+  await expect.poll(async () => (await st(A)).match!.minigame?.stage ?? 'done', { timeout: 15_000 }).toBe('results');
   await shot(seller, '19-duel-result');
   await cheat(A, 'skip');
   await expect.poll(async () => (await st(A)).match!.phase).toMatch(/PRE_ROLL|POST_ROLL/);

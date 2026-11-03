@@ -3,12 +3,11 @@ import { useEffect, useRef } from 'react';
 import type { Group } from 'three';
 import type { PublicPlayer } from '@pb/game-core';
 import { currentSeat } from '../ui/hooks';
-import { WORLD } from '@pb/content';
+import { WORLD, defaultAppearance } from '@pb/content';
 import { get, set, useStore } from '../state/store';
-import { Model } from './assets';
 import { TILE_HEIGHT, outward, tileRect } from './layout';
 import type { Profile } from './layout';
-import { JellyFigure } from './jelly';
+import { PlayerFigure } from './figure';
 
 const STEP_TIME = 0.16;
 const N = WORLD.tiles.length;
@@ -96,7 +95,7 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
     <group ref={ref} position={initial.current}>
       {/* Whose turn: the figure stands a bit taller (static, so idle frames are not redrawn). */}
       <group scale={active ? scale * 1.12 : scale} rotation={[-0.85, (slot - 1.5) * 0.12, 0]}>
-        <Model slot={ghost ? 'ghost' : 'token'} tint={player.color} fallback={<JellyFigure color={player.color} ghost={ghost} />} />
+        <PlayerFigure appearance={player.appearance ?? defaultAppearance(slot)} seatColor={player.color} ghost={ghost} />
       </group>
     </group>
   );
