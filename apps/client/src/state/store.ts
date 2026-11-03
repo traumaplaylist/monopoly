@@ -43,6 +43,8 @@ interface UiState {
   chanceCard: { id: string; seat: SeatId; seq: number } | null;
   prefs: Prefs;
   pending: number;
+  /** Full-screen wardrobe (character editor) is open. */
+  wardrobe: boolean;
 }
 
 export const useStore = create<UiState>(() => ({
@@ -65,6 +67,7 @@ export const useStore = create<UiState>(() => ({
   chanceCard: null,
   prefs: storage.prefs(),
   pending: 0,
+  wardrobe: false,
 }));
 
 export const set = useStore.setState;

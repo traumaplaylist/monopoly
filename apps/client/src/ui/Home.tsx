@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../net/connection';
 import { storage } from '../net/util';
-import { useStore } from '../state/store';
+import { set, useStore } from '../state/store';
 import { unlockAudio } from './sound';
 
 function codeFromUrl(): string {
@@ -55,6 +55,9 @@ export function Home() {
         </label>
         <button className="btn primary big" disabled={!online || !nameOk || busy} onClick={create} data-testid="create">
           Создать комнату
+        </button>
+        <button className="btn big wd-open" onClick={() => set({ wardrobe: true })} data-testid="open-wardrobe">
+          👕 Гардероб — персонаж
         </button>
         <div className="divider">или войти по коду</div>
         <div className="row">

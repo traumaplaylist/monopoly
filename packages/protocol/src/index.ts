@@ -1,7 +1,7 @@
 // Wire protocol between client and server. All inbound payloads are validated with these schemas.
 import { z } from 'zod';
 import type { Command, PrivateView, PublicMatch, SeatId } from '@pb/game-core';
-import { BODY_COLORS, BODY_MATERIALS, BODY_SHAPES, FACES, HATS } from '@pb/content';
+import { CLOTH_COLORS, HAIR_COLORS, OUTFIT_IDS, PACKS, SKIN_TONES } from '@pb/content';
 import type { Appearance } from '@pb/content';
 
 export const PROTOCOL_VERSION = 1;
@@ -84,15 +84,22 @@ export const CreateRoomSchema = z.object({ settings: RoomSettingsSchema.optional
 export const JoinRoomSchema = z.object({ code: RoomCodeSchema });
 export const ReadySchema = z.object({ ready: z.boolean() });
 export const AvatarSchema = z.object({ avatar: int.min(0).max(7) });
-/** Figure look: every part from a closed list; the server rejects anything else. */
+/** Character look: every part and colour from a closed list; all parts from one figure type. */
 export const AppearanceSchema = z.object({
-  appearance: z.object({
-    body: z.enum(BODY_SHAPES),
-    color: z.enum(BODY_COLORS),
-    material: z.enum(BODY_MATERIALS),
-    hat: z.enum(HATS),
-    face: z.enum(FACES),
-  }),
+  appearance: z
+    .object({
+      pack: z.enum(PACKS),
+      head: z.enum(OUTFIT_IDS),
+      body: z.enum(OUTFIT_IDS),
+      legs: z.enum(OUTFIT_IDS),
+      feet: z.enum(OUTFIT_IDS),
+      skin: z.enum(SKIN_TONES),
+      hair: z.enum(HAIR_COLORS),
+      shirt: z.enum(CLOTH_COLORS),
+      pants: z.enum(CLOTH_COLORS),
+      backpack: z.boolean(),
+    })
+    .refine((a) => [a.head, a.body, a.legs, a.feet].every((id) => id.startsWith(`${a.pack}-`)), 'mixedPack'),
 });
 
 export interface SeatPublic {

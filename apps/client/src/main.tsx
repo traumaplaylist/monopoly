@@ -26,7 +26,13 @@ initNative();
 // Canvas tile labels need the font; wait for it (max 2 s).
 const fonts = Promise.all(['500 16px Rubik', '700 16px Rubik', '800 16px Rubik', '700 16px Oswald'].map((f) => document.fonts.load(f, 'АБВ')));
 void Promise.race([Promise.all([fonts, loadManifest()]), new Promise((r) => setTimeout(r, 2000))]).finally(() => {
-  createRoot(document.getElementById('root')!).render(
+  const root = createRoot(document.getElementById('root')!);
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('thumbs')) {
+    // Dev-only thumbnail studio for the wardrobe (scripts/make-thumbs.mjs).
+    void import('./ui/ThumbStudio').then(({ ThumbStudio }) => root.render(<ThumbStudio />));
+    return;
+  }
+  root.render(
     <StrictMode>
       <App />
     </StrictMode>,

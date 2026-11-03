@@ -321,18 +321,32 @@ input, select { background: #fff; }
 .progress i { width: 14px; height: 14px; border-radius: 50%; background: #e6d6bd; display: inline-block; }
 .progress i.ok { background: var(--ok); }
 
-/* ---------- figure editor (lobby) ---------- */
-.fig-editor { display: grid; grid-template-columns: 170px 1fr; gap: 12px; align-items: start; }
-.fig-preview { height: 210px; border-radius: 16px; background: radial-gradient(ellipse at 50% 40%, #4a3f86, #221c47); overflow: hidden; }
-.fig-controls { display: grid; gap: 8px; min-width: 0; }
-.fig-row { display: grid; gap: 4px; }
-.fig-label { font-size: 0.8rem; color: var(--muted); }
-.fig-opts { display: flex; flex-wrap: wrap; gap: 5px; }
-.fig-opt { min-height: 32px; padding: 4px 10px; border-radius: 999px; border: 2px solid var(--line); background: #fff; font-size: 0.85rem; cursor: pointer; }
-.fig-opt.on { border-color: var(--navy); background: var(--navy); color: #fff; }
-.fig-swatch { width: 28px; height: 28px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
-.fig-swatch.on { box-shadow: 0 0 0 3px var(--navy); }
-@media (max-width: 520px) { .fig-editor { grid-template-columns: 1fr; } .fig-preview { height: 180px; } }
+/* ---------- wardrobe (GeoGuessr-style character editor) ---------- */
+.wd-open { width: 100%; }
+.wardrobe-layer { position: fixed; inset: 0; z-index: 50; background: radial-gradient(ellipse at 30% 30%, #4a3f86, #1b1640 70%); display: grid; place-items: center; padding: 16px; }
+.wardrobe { width: min(1180px, 100%); height: min(760px, 100%); display: grid; grid-template-columns: minmax(300px, 0.9fr) 1.3fr; gap: 16px; }
+.wd-stage { display: grid; grid-template-rows: auto 1fr auto auto; gap: 8px; min-height: 0; }
+.wd-title { font-family: var(--display); font-weight: 700; font-size: 2rem; color: #fff; letter-spacing: 0.04em; }
+.wd-canvas { min-height: 0; border-radius: 22px; background: radial-gradient(ellipse at 50% 35%, #5b4fa8, #2c2766 70%); box-shadow: inset 0 0 0 2px #4a4296; overflow: hidden; cursor: grab; touch-action: none; }
+.wd-actions { display: flex; gap: 10px; }
+.wd-actions .btn { flex: 1; }
+.wd-stage .hint { color: #c9c3f0; }
+.wd-panel { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-height: 0; background: var(--plum); border-radius: 22px; padding: 14px; box-shadow: var(--lift); }
+.wd-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.wd-tab { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--line); background: #fff; font-weight: 700; cursor: pointer; }
+.wd-tab.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+.wd-grid { overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; align-content: start; padding: 2px; }
+.wd-card { display: grid; gap: 6px; justify-items: center; padding: 8px; border-radius: 16px; border: 3px solid transparent; background: linear-gradient(180deg, #fff, #f6ecd9); box-shadow: var(--lift-sm); cursor: pointer; font-weight: 700; font-size: 0.88rem; }
+.wd-card.on { border-color: var(--coral); background: linear-gradient(180deg, #fff, #ffe9e1); }
+.wd-thumb { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 12px; background: radial-gradient(ellipse at 50% 40%, #e9e4ff, #cfc6f2); }
+.wd-thumb-txt { display: grid; place-items: center; font-size: 1.6rem; color: var(--navy); }
+.wd-color { aspect-ratio: 1; border-radius: 18px; border: 4px solid #fff; box-shadow: 0 0 0 1px var(--line), var(--lift-sm); cursor: pointer; font-weight: 700; font-size: 0.8rem; color: var(--muted); background: repeating-linear-gradient(45deg, #fff 0 8px, #f1e7d4 8px 16px); }
+.wd-color.on { box-shadow: 0 0 0 4px var(--navy), var(--lift-sm); }
+@media (max-width: 760px) {
+  .wardrobe { grid-template-columns: 1fr; grid-template-rows: 42% 1fr; }
+  .wd-title { font-size: 1.4rem; }
+  .wd-stage .hint { display: none; }
+}
 
 /* ---------- «Географ» ---------- */
 .quiz { display: grid; gap: 12px; }

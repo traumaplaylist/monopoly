@@ -45,5 +45,8 @@
 ## Иконки клеток (с 02.11.2026)
 По умолчанию — цветные 3D-иконки **Microsoft Fluent Emoji 3D** (MIT, © Microsoft; лицензия лежит рядом: `public/icons/fluent/LICENSE.txt`). Файл = `public/icons/fluent/<visual>.png`, где `visual` — ключ клетки из `packages/content/src/map.ts`; список подключённых ключей — `FLUENT` в `apps/client/src/render/icons.ts`. Свою иконку для конкретной клетки можно по-прежнему задать в `assets.json` → `icons` (по номеру клетки) — она главнее.
 
-## Части фишки игрока (с 03.11.2026)
-Слоты моделей для фишки: `body-meeple`, `body-pawn`, `body-bean`, `body-star` (тело; материалы с именем `Tint` перекрашиваются в выбранный игроком цвет) и `hat-cap`, `hat-crown`, `hat-tophat`, `hat-party`, `hat-beanie`, `hat-halo` (шляпа; ставится на голову, начало координат — макушка). Если модели нет — рисуется встроенная заглушка из `apps/client/src/render/figure.tsx`. Списки допустимых частей — `packages/content/src/appearance.ts`; новую часть добавлять туда (и тогда она пройдёт проверку сервера).
+## Персонажи и гардероб (с 03.11.2026)
+- Модели: **Quaternius «Ultimate Modular Men/Women»** (CC0, лицензия — `apps/client/public/models/characters/LICENSE-Quaternius.txt`). Источник файлов — GLB-конверсия из публичного репозитория `LuanDucate/Ducz.CharacterCreator` (берём только модели с их исходной CC0; код того репозитория не используется).
+- Сборка: `node scripts/build-characters.mjs <папка с Male/*.glb и Female/*.glb>` → `apps/client/public/models/characters/<наряд>.glb` (без анимаций и оружия, meshopt), общий файл анимаций `clips.glb` (Idle, Wave, Walk) и каталог `packages/content/src/characterCatalog.ts`. Военные наряды (Soldier, Swat) исключены.
+- Миниатюры гардероба: запустить клиент в dev и `node scripts/make-thumbs.mjs http://localhost:5173` → `models/characters/thumbs/<наряд>-<слот>.png`.
+- Новый наряд из Blender: та же структура (скелет Quaternius, узлы `<Имя>_Head/_Body/_Legs/_Feet`, материалы `Skin`, `Hair*`, ткань), положить в папку-источник и пересобрать — появится в гардеробе.

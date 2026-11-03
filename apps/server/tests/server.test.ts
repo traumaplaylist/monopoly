@@ -106,19 +106,20 @@ describe('внешность фишки', () => {
     for (const c of clients) await c.hello();
     const { code } = await clients[0]!.emit<{ ok: boolean; code: string }>(EV.create);
     for (const c of clients.slice(1)) await c.emit(EV.join, { code });
-    const look = { body: 'star', color: '#2fc4f0', material: 'metal', hat: 'crown', face: 'cool' };
+    const look = { pack: 'female', head: 'female-witch', body: 'female-punk', legs: 'female-casual', feet: 'female-formal', skin: '#8d5a3b', hair: '#ff4fa8', shirt: '#2fc4f0', pants: 'orig', backpack: true };
     expect((await clients[0]!.emit(EV.appearance, { appearance: look })).ok).toBe(true);
-    // Неизвестная шляпа и лишний цвет — отказ схемы, состояние не меняется.
-    expect((await clients[1]!.emit(EV.appearance, { appearance: { ...look, hat: 'bomb' } })).ok).toBe(false);
-    expect((await clients[1]!.emit(EV.appearance, { appearance: { ...look, color: '#123456' } })).ok).toBe(false);
-    await until(() => clients.every((c) => c.snap?.room?.seats.find((x) => x.seat === clients[0]!.seat)?.appearance.hat === 'crown'));
+    // Неизвестная часть, чужой цвет и смешение типов фигуры — отказ схемы.
+    expect((await clients[1]!.emit(EV.appearance, { appearance: { ...look, head: 'bomb' } })).ok).toBe(false);
+    expect((await clients[1]!.emit(EV.appearance, { appearance: { ...look, skin: '#123456' } })).ok).toBe(false);
+    expect((await clients[1]!.emit(EV.appearance, { appearance: { ...look, head: 'male-king' } })).ok).toBe(false);
+    await until(() => clients.every((c) => c.snap?.room?.seats.find((x) => x.seat === clients[0]!.seat)?.appearance.head === 'female-witch'));
     for (const c of clients) await c.emit(EV.ready, { ready: true });
     expect((await clients[0]!.emit(EV.start)).ok).toBe(true);
     await until(() => clients.every((c) => !!c.snap?.match));
     const players = clients[0]!.snap!.match!.players;
     expect(players.find((p) => p.seat === clients[0]!.seat)!.appearance).toEqual(look);
     const other = players.find((p) => p.seat === clients[1]!.seat)!;
-    expect(other.appearance!.hat).not.toBe('bomb');
+    expect(other.appearance!.head).not.toBe('bomb');
     expect(other.color).not.toBe(players.find((p) => p.seat === clients[0]!.seat)!.color); // цвет места отдельно от вида
   });
 });

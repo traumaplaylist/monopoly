@@ -3,6 +3,7 @@ import { Home } from './Home';
 import { Lobby } from './Lobby';
 import { MatchScreen } from './match/MatchScreen';
 import { ConnBanner, Toast } from './match/Overlays';
+import { Wardrobe } from './Wardrobe';
 
 export function App() {
   const room = useStore((s) => s.room);
@@ -11,6 +12,7 @@ export function App() {
   return (
     <>
       {screen}
+      <Wardrobe />
       <ConnBanner />
       <Toast />
     </>
