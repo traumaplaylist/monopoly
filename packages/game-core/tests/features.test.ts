@@ -104,9 +104,10 @@ describe('«Касса закрывается» (реакция)', () => {
     const before = s.players.map((x) => x.cash);
     s = advance(s, g.playEnd)!.state;
     expect(s.minigame!.stage).toBe('results');
-    expect(cash(s, 's0') - before[0]!).toBe(120);
-    expect(cash(s, 's1') - before[1]!).toBe(60);
-    expect(cash(s, 's2') - before[2]!).toBe(60);
+    const [p1, p2, p3] = RULESET.minigamePrizes;
+    expect(cash(s, 's0') - before[0]!).toBe(p1);
+    expect(cash(s, 's1') - before[1]!).toBe(Math.floor((p2 + p3) / 2));
+    expect(cash(s, 's2') - before[2]!).toBe(Math.floor((p2 + p3) / 2));
     expect(p(s, 's3').ghostEnergy).toBe(2);
     const again = advance(s, s.now + 1);
     expect(again).toBeNull(); // повторной выплаты нет
@@ -292,10 +293,10 @@ describe('предметы', () => {
   it('скидка уменьшает аренду на 50% по выбору до оплаты', () => {
     let s = giveTiles(newMatch(), 's1', 3, 1, 5);
     s.players[0]!.items = ['discount'];
-    s = rollWith(s, 1, 2); // Луксор: аренда 20 (вся страна)
+    s = rollWith(s, 1, 2); // Луксор: аренда 40 (вся страна)
     expect(s.phase).toBe('RENT_CHOICE');
     s = act(s, 's0', { type: 'USE_DISCOUNT' });
-    expect(cash(s, 's0')).toBe(1500 - 10);
+    expect(cash(s, 's0')).toBe(1500 - 20);
     expect(p(s, 's0').items).toEqual([]);
   });
 
@@ -492,7 +493,7 @@ describe('предмет «Билет»', () => {
     t.players[0]!.items = ['ticket'];
     t = act(t, 's0', { type: 'USE_TICKET', tile: 6 });
     expect(p(t, 's0').position).toBe(6);
-    expect(cash(t, 's0')).toBe(1700);
+    expect(cash(t, 's0')).toBe(1500 + RULESET.startSalary);
     expect(fail(t, 's0', { type: 'USE_TICKET', tile: 15 })).toBe('wrongPhase'); // ход уже сделан
   });
 });

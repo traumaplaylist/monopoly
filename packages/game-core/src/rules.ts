@@ -51,9 +51,16 @@ export function rentFor(s: MatchState, index: number): number {
   const t = tileDef(index);
   const o = s.tiles[index];
   if (!o || !o.owner || o.mortgaged || !t.baseRent) return 0;
+  const group = groupTiles(MAP, t.group!);
+  if (t.group === 'air') {
+    const n = group.filter((i) => s.tiles[i]?.owner === o.owner && !s.tiles[i]!.mortgaged).length;
+    return RULESET.airportRent[Math.max(0, n - 1)]!;
+  }
   if (o.level > 0) return t.baseRent * RULESET.upgradeMultipliers[o.level]!;
-  const fullUnmortgaged = groupTiles(MAP, t.group!).every((i) => s.tiles[i]?.owner === o.owner && !s.tiles[i]!.mortgaged);
-  return fullUnmortgaged ? t.baseRent * RULESET.fullSetMultiplier : t.baseRent;
+  const mine = group.filter((i) => s.tiles[i]?.owner === o.owner && !s.tiles[i]!.mortgaged).length;
+  if (mine === group.length) return t.baseRent * RULESET.fullSetMultiplier;
+  if (mine === group.length - 1 && group.length >= 3) return pct(t.baseRent, RULESET.partialSetMultiplier);
+  return t.baseRent;
 }
 
 /** Money reserved by active auction leadership or an accepted duel. */

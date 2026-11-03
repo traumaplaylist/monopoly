@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RULESET } from '@pb/content';
+import { RULESET, WORLD } from '@pb/content';
 import { advance, applyCommand, liquidationValue, nextDeadline, publicView, rentFor } from '../src';
 import type { Command } from '../src';
 import { T0, act, cash, fail, finishTurn, giveTiles, newMatch, p, rollWith } from './helpers';
@@ -17,7 +17,7 @@ describe('ход и движение', () => {
     s.players[0]!.position = 38;
     s = rollWith(s, 1, 1); // 40 → 0 (Старт)
     expect(p(s, 's0').position).toBe(0);
-    expect(cash(s, 's0')).toBe(1700);
+    expect(cash(s, 's0')).toBe(1500 + RULESET.startSalary);
     expect(s.log.filter((e) => e.t === 'money' && e.reason === 'salary')).toHaveLength(1);
   });
 
@@ -62,32 +62,47 @@ describe('покупка и аренда', () => {
     expect(fail(poor, 's0', { type: 'BUY' })).toBe('noCash');
   });
 
-  it('аренда, удвоение комплекта, уровни ×3/×6/×10, залог = 0', () => {
-    // Египет: 1, 3, 5 — комплект из трёх городов.
-    let s = giveTiles(newMatch(), 's1', 1, 3);
-    expect(rentFor(s, 1)).toBe(10);
+  it('аренда: один город, 2 из 3 ×1,5, вся страна ×2, уровни ×4/×10/×20, залог = 0', () => {
+    // Египет: 1, 3, 5 — страна из трёх городов. Каир: базовая аренда 20.
+    const base = WORLD.tiles[1]!.baseRent!;
+    expect(base).toBe(20);
+    let s = giveTiles(newMatch(), 's1', 1);
+    expect(rentFor(s, 1)).toBe(base);
+    s = giveTiles(s, 's1', 3);
+    expect(rentFor(s, 1)).toBe(30); // 2 из 3
     s = giveTiles(s, 's1', 5);
-    expect(rentFor(s, 1)).toBe(20);
+    expect(rentFor(s, 1)).toBe(40); // вся страна
     for (const [lvl, mult] of [
-      [1, 3],
-      [2, 6],
-      [3, 10],
+      [1, 4],
+      [2, 10],
+      [3, 20],
     ] as const) {
       s.tiles[1]!.level = lvl;
-      expect(rentFor(s, 1)).toBe(10 * mult);
+      expect(rentFor(s, 1)).toBe(base * mult);
     }
     s.tiles[1]!.level = 0;
     s.tiles[3]!.mortgaged = true;
-    expect(rentFor(s, 1)).toBe(10); // группа с залогом не удваивается
+    expect(rentFor(s, 1)).toBe(30); // заложенный город не считается: снова «2 из 3»
     expect(rentFor(s, 3)).toBe(0);
+  });
+
+  it('аэропорты: аренда по числу аэропортов владельца 25/50/100/200, улучшать нельзя', () => {
+    let s = newMatch();
+    const air = [6, 15, 25, 35];
+    for (let k = 1; k <= 4; k++) {
+      s = giveTiles(s, 's1', air[k - 1]!);
+      expect(rentFor(s, 6)).toBe(RULESET.airportRent[k - 1]);
+    }
+    s = giveTiles(s, 's0', ...air);
+    expect(fail(s, 's0', { type: 'UPGRADE', tile: 6 })).toBe('notUpgradable');
   });
 
   it('игрок платит аренду владельцу', () => {
     let s = giveTiles(newMatch(), 's1', 3);
     s.players[0]!.items = [];
     s = rollWith(s, 1, 2);
-    expect(cash(s, 's0')).toBe(1490);
-    expect(cash(s, 's1')).toBe(1510);
+    expect(cash(s, 's0')).toBe(1480); // Луксор: аренда 20
+    expect(cash(s, 's1')).toBe(1520);
   });
 });
 

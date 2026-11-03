@@ -3,8 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
-  "engines": { "node": ">=22.13" },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:server": "npm run dev -w @pb/server",
@@ -14,7 +19,8 @@
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
     "e2e": "playwright test",
-    "format": "prettier --write packages apps/client/src apps/server/src tests"
+    "format": "prettier --write packages apps/client/src apps/server/src tests",
+    "balance": "node --import tsx scripts/balance.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

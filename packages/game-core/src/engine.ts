@@ -331,6 +331,7 @@ function handle(ctx: Ctx, seat: SeatId, cmd: Command): void {
       s.trade = null; // unlock before transfer
       executeSide(ctx, tr.from, tr.to, tr.give);
       executeSide(ctx, tr.to, tr.from, tr.get);
+      s.stats.tradesAccepted = (s.stats.tradesAccepted ?? 0) + 1;
       emit(ctx, { t: 'trade', offer: tr, result: 'accepted' });
       return resumeTurn(ctx);
     }
@@ -764,6 +765,7 @@ function upgrade(ctx: Ctx, seat: SeatId, tile: number): void {
   const o = own(s, tile);
   ensure(o.owner === seat, 'notOwner');
   const g = groupOf(tile);
+  ensure(!RULESET.upgradableGroups || RULESET.upgradableGroups.includes(g), 'notUpgradable');
   ensure(ownsFullGroup(s, seat, g), 'needFullGroup');
   const tiles = groupTiles(MAP, g);
   ensure(

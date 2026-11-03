@@ -5,14 +5,20 @@ export const RULES_VERSION = 'v1.0';
 export const RULESET = {
   version: RULES_VERSION,
   seats: 4,
-  startCash: 1500,
+  startCash: 1200,
   maxRounds: 12,
-  startSalary: 200,
+  startSalary: 150,
 
   // Upgrades: levels 0..3, rent multipliers replace the full-set x2.
   maxUpgradeLevel: 3,
   fullSetMultiplier: 2,
-  upgradeMultipliers: [1, 3, 6, 10] as const,
+  /** Groups that can be upgraded (all when undefined). */
+  upgradableGroups: ['egypt', 'india', 'mexico', 'turkey', 'spain', 'italy', 'france', 'japan'] as readonly string[] | undefined,
+  upgradeMultipliers: [1, 4, 10, 20] as const,
+  /** Rent ×1.5 when the owner has all cities of a country but one (and none of them is mortgaged). */
+  partialSetMultiplier: 1.5,
+  /** Airports: rent depends on how many airports the owner has (1..4); airports are not upgradable. */
+  airportRent: [25, 50, 100, 200] as const,
   upgradeSellRefund: 0.5,
 
   mortgageRate: 0.5,
@@ -31,7 +37,7 @@ export const RULESET = {
   // Mini-games
   minigameEveryRoundsOptions: [1, 2, 3] as const,
   minigameEveryRoundsDefault: 2,
-  minigamePrizes: [120, 80, 40, 20] as const,
+  minigamePrizes: [100, 60, 30, 10] as const,
   minigameIntroMs: 10_000,
   minigameResultsMs: 6_000,
 

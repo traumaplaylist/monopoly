@@ -289,7 +289,7 @@ export interface MatchState {
   standings: FinalStanding[] | null;
   eventSeq: number;
   log: MatchEvent[];
-  stats: { minigamesPlayed: number; duelsPlayed: number; phaseSince: number; phaseTime: Record<string, number> };
+  stats: { minigamesPlayed: number; duelsPlayed: number; tradesAccepted?: number; phaseSince: number; phaseTime: Record<string, number> };
 }
 
 type Ev<T extends string, P> = { t: T; seq: number; at: number } & P;

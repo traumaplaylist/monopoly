@@ -2,6 +2,8 @@
 // on every client; layouts only change coordinates. Groups are countries (3 cities each) plus four
 // airports (one per side). City names are public geography; no tile list is copied from any game.
 
+import { RULESET } from './ruleset';
+
 export type TileKind = 'start' | 'auction' | 'pause' | 'parking' | 'property' | 'chance' | 'tax' | 'minigame' | 'duel';
 
 export type GroupId = 'egypt' | 'india' | 'mexico' | 'turkey' | 'air' | 'spain' | 'italy' | 'france' | 'japan';
@@ -94,8 +96,8 @@ const prop = (
   description:
     (CITY_FACTS[id] ? `${CITY_FACTS[id]} ` : '') +
     (group === 'air'
-      ? 'Все четыре аэропорта — один комплект: полный комплект удваивает аренду.'
-      : `Владелец получает аренду, вся страна «${GROUPS[group].name}» целиком удваивает её.`),
+      ? `Аренда растёт с числом аэропортов у владельца: ${RULESET.airportRent.join(' / ')}. Не улучшается.`
+      : `Аренда: 2 города страны «${GROUPS[group].name}» — ×1,5, все 3 — ×2.`),
 });
 
 const special = (index: number, id: string, kind: TileKind, name: string, shortLabel: string, visual: string, description: string, tax?: number): TileDef =>
@@ -105,50 +107,50 @@ const CHANCE = 'Возьмите карту «Шанс».';
 const MINIGAME = 'Ставит общую мини-игру на ближайшую границу раунда.';
 
 export const WORLD_TILES: readonly TileDef[] = [
-  special(0, 'start', 'start', 'Старт', 'Старт', 'flag', '+200 монет за каждое прохождение или попадание.'),
+  special(0, 'start', 'start', 'Старт', 'Старт', 'flag', `+${RULESET.startSalary} монет за каждое прохождение или попадание.`),
   // --- side 1: Египет, аэропорт, Индия
-  prop(1, 'cairo', 'Каир', 'Каир', 'egypt', 100, 10, 'pyramid'),
+  prop(1, 'cairo', 'Каир', 'Каир', 'egypt', 100, 20, 'pyramid'),
   special(2, 'chance-1', 'chance', 'Шанс', 'Шанс', 'question', CHANCE),
-  prop(3, 'luxor', 'Луксор', 'Луксор', 'egypt', 100, 10, 'columns'),
+  prop(3, 'luxor', 'Луксор', 'Луксор', 'egypt', 100, 20, 'columns'),
   special(4, 'tax-tourist', 'tax', 'Туристический сбор', 'Сбор', 'receipt', 'Заплатите банку 100 монет.', 100),
-  prop(5, 'hurghada', 'Хургада', 'Хургада', 'egypt', 120, 12, 'fish'),
+  prop(5, 'hurghada', 'Хургада', 'Хургада', 'egypt', 120, 24, 'fish'),
   prop(6, 'air-south', 'Аэропорт «Юг»', 'Аэропорт', 'air', 200, 25, 'plane'),
-  prop(7, 'goa', 'Гоа', 'Гоа', 'india', 140, 14, 'palm'),
-  prop(8, 'delhi', 'Дели', 'Дели', 'india', 140, 14, 'landmark'),
-  prop(9, 'mumbai', 'Мумбаи', 'Мумбаи', 'india', 160, 16, 'film'),
+  prop(7, 'goa', 'Гоа', 'Гоа', 'india', 140, 28, 'palm'),
+  prop(8, 'delhi', 'Дели', 'Дели', 'india', 140, 28, 'landmark'),
+  prop(9, 'mumbai', 'Мумбаи', 'Мумбаи', 'india', 160, 32, 'film'),
   special(10, 'auction', 'auction', 'Аукцион', 'Аукцион', 'gavel', 'Торги за случайный свободный объект.'),
   // --- side 2: Мексика, аэропорт, Турция
-  prop(11, 'cancun', 'Канкун', 'Канкун', 'mexico', 180, 18, 'sun'),
+  prop(11, 'cancun', 'Канкун', 'Канкун', 'mexico', 180, 36, 'sun'),
   special(12, 'minigame-1', 'minigame', 'Мини-игра', 'Мини-игра', 'gamepad', MINIGAME),
-  prop(13, 'tulum', 'Тулум', 'Тулум', 'mexico', 180, 18, 'cactus'),
-  prop(14, 'mexico-city', 'Мехико', 'Мехико', 'mexico', 200, 20, 'guitar'),
+  prop(13, 'tulum', 'Тулум', 'Тулум', 'mexico', 180, 36, 'cactus'),
+  prop(14, 'mexico-city', 'Мехико', 'Мехико', 'mexico', 200, 40, 'guitar'),
   prop(15, 'air-east', 'Аэропорт «Восток»', 'Аэропорт', 'air', 200, 25, 'plane'),
-  prop(16, 'antalya', 'Анталья', 'Анталья', 'turkey', 220, 22, 'umbrella'),
+  prop(16, 'antalya', 'Анталья', 'Анталья', 'turkey', 220, 44, 'umbrella'),
   special(17, 'chance-2', 'chance', 'Шанс', 'Шанс', 'question', CHANCE),
-  prop(18, 'izmir', 'Измир', 'Измир', 'turkey', 220, 22, 'ship'),
-  prop(19, 'istanbul', 'Стамбул', 'Стамбул', 'turkey', 240, 24, 'moon'),
+  prop(18, 'izmir', 'Измир', 'Измир', 'turkey', 220, 44, 'ship'),
+  prop(19, 'istanbul', 'Стамбул', 'Стамбул', 'turkey', 240, 48, 'moon'),
   special(20, 'pause', 'pause', 'Пауза', 'Пауза', 'coffee', 'Безопасная клетка, ничего не происходит.'),
   // --- side 3: Испания, аэропорт, Италия
-  prop(21, 'valencia', 'Валенсия', 'Валенсия', 'spain', 260, 26, 'citrus'),
+  prop(21, 'valencia', 'Валенсия', 'Валенсия', 'spain', 260, 52, 'citrus'),
   special(22, 'duel', 'duel', 'Дуэль', 'Дуэль', 'swords', 'Можно бросить вызов за объект соперника (тратит жетон вызова).'),
-  prop(23, 'seville', 'Севилья', 'Севилья', 'spain', 260, 26, 'music'),
-  prop(24, 'barcelona', 'Барселона', 'Барселона', 'spain', 280, 28, 'ferris'),
+  prop(23, 'seville', 'Севилья', 'Севилья', 'spain', 260, 52, 'music'),
+  prop(24, 'barcelona', 'Барселона', 'Барселона', 'spain', 280, 56, 'ferris'),
   prop(25, 'air-north', 'Аэропорт «Север»', 'Аэропорт', 'air', 200, 25, 'plane'),
-  prop(26, 'naples', 'Неаполь', 'Неаполь', 'italy', 300, 30, 'pizza'),
-  prop(27, 'milan', 'Милан', 'Милан', 'italy', 300, 30, 'shirt'),
+  prop(26, 'naples', 'Неаполь', 'Неаполь', 'italy', 300, 60, 'pizza'),
+  prop(27, 'milan', 'Милан', 'Милан', 'italy', 300, 60, 'shirt'),
   special(28, 'minigame-2', 'minigame', 'Мини-игра', 'Мини-игра', 'gamepad', MINIGAME),
-  prop(29, 'rome', 'Рим', 'Рим', 'italy', 320, 32, 'columns'),
+  prop(29, 'rome', 'Рим', 'Рим', 'italy', 320, 64, 'columns'),
   special(30, 'parking', 'parking', 'Парковка', 'Парковка', 'car', 'Безопасная клетка, ничего не происходит.'),
   // --- side 4: Франция, аэропорт, Япония
-  prop(31, 'nice', 'Ницца', 'Ницца', 'france', 340, 36, 'sailboat'),
+  prop(31, 'nice', 'Ницца', 'Ницца', 'france', 340, 68, 'sailboat'),
   special(32, 'chance-3', 'chance', 'Шанс', 'Шанс', 'question', CHANCE),
-  prop(33, 'lyon', 'Лион', 'Лион', 'france', 340, 36, 'wine'),
-  prop(34, 'paris', 'Париж', 'Париж', 'france', 360, 40, 'bread'),
+  prop(33, 'lyon', 'Лион', 'Лион', 'france', 340, 68, 'wine'),
+  prop(34, 'paris', 'Париж', 'Париж', 'france', 360, 72, 'bread'),
   prop(35, 'air-west', 'Аэропорт «Запад»', 'Аэропорт', 'air', 200, 25, 'plane'),
-  prop(36, 'osaka', 'Осака', 'Осака', 'japan', 380, 44, 'utensils'),
+  prop(36, 'osaka', 'Осака', 'Осака', 'japan', 380, 76, 'utensils'),
   special(37, 'tax-lux', 'tax', 'Налог на роскошь', 'Налог', 'receipt', 'Заплатите банку 150 монет.', 150),
-  prop(38, 'kyoto', 'Киото', 'Киото', 'japan', 380, 44, 'sakura'),
-  prop(39, 'tokyo', 'Токио', 'Токио', 'japan', 400, 50, 'tower'),
+  prop(38, 'kyoto', 'Киото', 'Киото', 'japan', 380, 76, 'sakura'),
+  prop(39, 'tokyo', 'Токио', 'Токио', 'japan', 400, 80, 'tower'),
 ];
 
 export interface MapDef {

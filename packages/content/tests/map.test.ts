@@ -29,7 +29,7 @@ describe('карта «Вокруг света»', () => {
       expect(t.price).toBeGreaterThanOrEqual(100);
       expect(t.price).toBeLessThanOrEqual(400);
       expect(t.baseRent).toBeGreaterThanOrEqual(10);
-      expect(t.baseRent).toBeLessThanOrEqual(50);
+      expect(t.baseRent).toBeLessThanOrEqual(80);
       expect(t.shortLabel.length).toBeLessThanOrEqual(10);
     }
     expect(new Set(GROUP_ORDER.map((g) => GROUPS[g].color)).size).toBe(GROUP_ORDER.length);

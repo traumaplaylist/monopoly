@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { RULESET } from '@pb/content';
 import { MEMORY, MINIGAME_INFO, REACTION } from '@pb/game-core';
 import type { PublicMatch, PublicMinigame } from '@pb/game-core';
 import { send } from '../../net/connection';
@@ -37,7 +38,7 @@ function Intro({ mg, m, me }: { mg: PublicMinigame; m: PublicMatch; me: string |
         </p>
       )}
       <p>{info.rules}</p>
-      {mg.context === 'group' && <p className="muted">Призы живым игрокам: 120 / 80 / 40 / 20. Призраки получают энергию.</p>}
+      {mg.context === 'group' && <p className="muted">Призы живым игрокам: {RULESET.minigamePrizes.join(' / ')}. Призраки получают энергию.</p>}
       <div className="mg-ready-list">
         {mg.participants.map((s) => {
           const p = m.players.find((x) => x.seat === s)!;

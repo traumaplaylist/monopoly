@@ -291,7 +291,7 @@ test('стол на четверых: лобби, ходы, мини-игры, �
   await expect.poll(async () => (await st(A)).match!.matchId).not.toBe(oldMatch);
   s = await st(A);
   expect(s.match!.round).toBe(1);
-  expect(s.match!.players.every((p) => p.role === 'alive' && p.cash === 1500)).toBe(true);
+  expect(s.match!.players.every((p) => p.role === 'alive' && p.cash === 1200)).toBe(true); // RULESET.startCash
 
   // --- Desktop 1920×1080 ---
   await A.page.setViewportSize({ width: 1920, height: 1080 });

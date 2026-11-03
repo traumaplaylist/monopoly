@@ -14,6 +14,8 @@ export function newMatch(opts: { seats?: number; minigameEvery?: 1 | 2 | 3; maxR
     now: T0,
   });
   s.order = Array.from({ length: n }, (_, i) => `s${i}`);
+  // Mechanics tests use a fixed bank of 1500 so the arithmetic stays readable whatever RULESET.startCash is.
+  for (const p of s.players) p.cash = 1500;
   s.turn.seat = 's0';
   return s;
 }

@@ -1,3 +1,4 @@
+import { RULESET } from '@pb/content';
 import { afterEach, describe, expect, it } from 'vitest';
 import { EV } from '@pb/protocol';
 import { ManualClock } from '../src/clock';
@@ -223,6 +224,6 @@ describe('полная партия через сервер', () => {
     const next = clients[0]!.snap!.match!;
     expect(next.phase).toBe('PRE_ROLL');
     expect(next.round).toBe(1);
-    expect(next.players.every((p) => p.cash === 1500 && p.items.join() === 'shield')).toBe(true);
+    expect(next.players.every((p) => p.cash === RULESET.startCash && p.items.join() === 'shield')).toBe(true);
   }, 120_000);
 });
