@@ -6,7 +6,8 @@ services:
     runtime: node
     plan: free
     branch: claude/browser-economy-board-game-aspm4s
-    buildCommand: npm ci --include=dev && npm run build
+    # Typecheck runs before every commit; the deploy build skips it to stay within free-plan memory.
+    buildCommand: npm ci --include=dev && npm run build -w @pb/client && npm run build -w @pb/server
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
