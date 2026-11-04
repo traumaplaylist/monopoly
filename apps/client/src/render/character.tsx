@@ -2,9 +2,9 @@
 // Each of the four slots can come from a different outfit file: the slot mesh is re-bound to the
 // skeleton of the body outfit. Colours are applied by material name (skin, hair, shirt, pants).
 import { useGLTF } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Suspense, useEffect, useMemo, useRef } from 'react';
-import { AnimationMixer, Box3, Color, DoubleSide, Group, LoopOnce, MeshStandardMaterial, Skeleton, SkinnedMesh, Vector3 } from 'three';
+import { AnimationMixer, Box3, Color, DoubleSide, Group, LoopOnce, LoopRepeat, MeshStandardMaterial, Skeleton, SkinnedMesh, Vector3 } from 'three';
 import type { AnimationClip, Bone, Material, Mesh, Object3D } from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { OUTFITS, SLOTS } from '@pb/content';
@@ -140,8 +140,9 @@ function useClips(): AnimationClip[] {
 }
 
 export type CharacterMode = 'still' | 'idle';
+export type CharacterAction = 'walk' | 'cheer' | null;
 
-function Assembled({ a, height, ghost, mode, wave, only }: { a: Appearance; height: number; ghost: boolean; mode: CharacterMode; wave: number; only?: Slot }) {
+function Assembled({ a, height, ghost, mode, wave, only, action }: { a: Appearance; height: number; ghost: boolean; mode: CharacterMode; wave: number; only?: Slot; action: CharacterAction }) {
   // Always exactly five loads (head, body, legs, feet, backpack-or-body) so the hook order is stable;
   // repeated files come from the loader cache.
   const files = [
@@ -200,8 +201,36 @@ function Assembled({ a, height, ghost, mode, wave, only }: { a: Appearance; heig
     act.reset().setLoop(LoopOnce, 1).fadeIn(0.15).play();
     act.clampWhenFinished = false;
   }, [wave, mixer, clips]);
+  // Board actions: walk while the token moves, cheer (looped wave) for the winner.
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    const idle = clips.find((c) => c.name === 'Idle');
+    const walk = clips.find((c) => c.name === 'Walk');
+    const cheer = clips.find((c) => c.name === 'Wave');
+    const idleAct = idle ? mixer.clipAction(idle) : null;
+    const walkAct = walk ? mixer.clipAction(walk) : null;
+    const cheerAct = cheer ? mixer.clipAction(cheer) : null;
+    if (action === 'walk' && walkAct) {
+      walkAct.reset().setEffectiveTimeScale(1.7).fadeIn(0.12).play();
+      idleAct?.fadeOut(0.12);
+    } else if (action === 'cheer' && cheerAct) {
+      cheerAct.reset().setLoop(LoopRepeat, Infinity).fadeIn(0.2).play();
+      idleAct?.fadeOut(0.2);
+    } else {
+      walkAct?.stop();
+      cheerAct?.stop();
+      if (idleAct) {
+        idleAct.reset().setEffectiveWeight(1).play();
+        mixer.setTime(0.3);
+      }
+    }
+    invalidate();
+  }, [action, mixer, clips, invalidate]);
   useFrame((_, dt) => {
-    if (mode === 'idle') mixer.update(Math.min(dt, 0.05));
+    if (mode === 'idle' || action) {
+      mixer.update(Math.min(dt, 0.05));
+      if (action) invalidate(); // frameloop="demand": keep drawing while acting
+    }
   });
   return (
     <group scale={scale} position={[cx, offset, cz]}>
@@ -228,6 +257,7 @@ export function Character({
   mode = 'still',
   wave = 0,
   only,
+  action = null,
 }: {
   appearance: Appearance;
   height?: number;
@@ -237,6 +267,8 @@ export function Character({
   wave?: number;
   /** Show a single slot (wardrobe thumbnails). */
   only?: Slot;
+  /** Board animation: walking along the path, or cheering (winner). */
+  action?: CharacterAction;
 }) {
   return (
     <group>
@@ -247,7 +279,7 @@ export function Character({
         </mesh>
       )}
       <Suspense fallback={<Placeholder a={a} height={height} ghost={ghost} />}>
-        <Assembled a={a} height={height} ghost={ghost} mode={mode} wave={wave} only={only} />
+        <Assembled a={a} height={height} ghost={ghost} mode={mode} wave={wave} only={only} action={action} />
       </Suspense>
     </group>
   );

@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Group } from 'three';
 import type { PublicPlayer } from '@pb/game-core';
 import { currentSeat } from '../ui/hooks';
@@ -9,7 +9,7 @@ import { TILE_HEIGHT, outward, tileRect } from './layout';
 import type { Profile } from './layout';
 import { Character } from './character';
 
-const STEP_TIME = 0.16;
+const STEP_TIME = 0.24;
 const N = WORLD.tiles.length;
 
 /**
@@ -37,6 +37,9 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
   const ref = useRef<Group>(null);
   const move = useStore((s) => s.moves.find((m) => m.seat === player.seat));
   const anim = useRef<{ path: number[]; t: number; seg: number } | null>(null);
+  const yaw = useRef<Group>(null);
+  const [walking, setWalking] = useState(false);
+  const winner = useStore((s) => s.match?.phase === 'FINISHED' && !!s.match.standings?.some((x) => x.seat === player.seat && x.winner));
   const active = useStore((s) => (s.match ? currentSeat(s.match) === player.seat : false));
   const invalidate = useThree((s) => s.invalidate);
 
@@ -48,6 +51,7 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
     for (let k = 0; k <= n; k++) path.push((((move.from + dir * k) % N) + N) % N);
     if (path[path.length - 1] !== move.to) path.push(move.to);
     anim.current = { path, t: 0, seg: 0 };
+    setWalking(true);
     invalidate();
   }, [move, invalidate]);
 
@@ -74,12 +78,21 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
     const [x0, y0, z0] = tileSpot(a.path[a.seg]!, slot, profile);
     const [x1, , z1] = tileSpot(a.path[a.seg + 1]!, slot, profile);
     const e = k * k * (3 - 2 * k);
-    g.position.set(x0 + (x1 - x0) * e, y0 + Math.sin(k * Math.PI) * 0.35, z0 + (z1 - z0) * e);
+    g.position.set(x0 + (x1 - x0) * e, y0 + Math.sin(k * Math.PI) * 0.06, z0 + (z1 - z0) * e);
+    // Face the way we walk (the figure's front is +Z).
+    if (yaw.current && (Math.abs(x1 - x0) + Math.abs(z1 - z0) > 0.001)) {
+      const want = Math.atan2(x1 - x0, z1 - z0);
+      let d = want - yaw.current.rotation.y;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      yaw.current.rotation.y += d * Math.min(1, Math.min(dt, 0.05) * 14);
+    }
     if (k >= 1) {
       a.seg += 1;
       a.t = 0;
       if (a.seg >= a.path.length - 1) {
         anim.current = null;
+        setWalking(false);
+        if (yaw.current) yaw.current.rotation.y = 0;
         const moves = get().moves;
         const i = moves.findIndex((m) => m.seat === player.seat);
         if (i >= 0) set({ moves: [...moves.slice(0, i), ...moves.slice(i + 1)] });
@@ -95,7 +108,15 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
     <group ref={ref} position={initial.current}>
       {/* Whose turn: the figure stands a bit taller (static, so idle frames are not redrawn). */}
       <group scale={active ? scale * 1.12 : scale} rotation={[-0.85, (slot - 1.5) * 0.12, 0]}>
-        <Character appearance={sanitizeAppearance(player.appearance, defaultAppearance(slot))} height={1.35} seatColor={player.color} ghost={ghost} />
+        <group ref={yaw}>
+          <Character
+            appearance={sanitizeAppearance(player.appearance, defaultAppearance(slot))}
+            height={1.35}
+            seatColor={player.color}
+            ghost={ghost}
+            action={walking ? 'walk' : winner ? 'cheer' : null}
+          />
+        </group>
       </group>
     </group>
   );

@@ -101,7 +101,7 @@ export function Prompt() {
       <div className="prompt">
         <div className="prompt-title">«{t.name}» свободна</div>
         <div className="muted">
-          Цена <Coins n={t.price!} />, аренда {money(t.baseRent!)} (комплект ×2)
+          Цена <Coins n={t.price!} />, {t.group === 'air' ? `аренда ${RULESET.airportRent.join(' / ')} по числу аэропортов` : `аренда ${money(t.baseRent!)}; 2 из 3 городов ×1,5, вся страна ×2`}
         </div>
         <div className="row">
           <button className="btn primary" disabled={free < t.price!} onClick={() => send({ type: 'BUY' })} data-testid="buy">
