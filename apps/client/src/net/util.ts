@@ -55,8 +55,11 @@ export const storage = {
 };
 
 export interface Prefs {
+  /** Sound effects volume 0..1. */
   volume: number;
+  /** Background music volume 0..1. */
+  music: number;
   muted: boolean;
   reduceMotion: boolean;
 }
-export const DEFAULT_PREFS: Prefs = { volume: 0.6, muted: false, reduceMotion: false };
+export const DEFAULT_PREFS: Prefs = { volume: 0.6, music: 0.35, muted: false, reduceMotion: false };

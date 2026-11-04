@@ -15,7 +15,6 @@ export function WorldEventPopup() {
   const card = useStore((s) => s.worldCard);
   useEffect(() => {
     if (!card) return;
-    playSound('turn');
     const t = setTimeout(() => set({ worldCard: null }), 4500);
     return () => clearTimeout(t);
   }, [card]);
@@ -38,7 +37,6 @@ export function ChanceCardPopup() {
   const me = useStore((s) => s.seat);
   useEffect(() => {
     if (!card) return;
-    playSound('coin');
     const t = setTimeout(() => set({ chanceCard: null }), 3500);
     return () => clearTimeout(t);
   }, [card]);

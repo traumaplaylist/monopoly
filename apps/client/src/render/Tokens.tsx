@@ -8,6 +8,7 @@ import { get, set, useStore } from '../state/store';
 import { TILE_HEIGHT, outward, tileRect } from './layout';
 import type { Profile } from './layout';
 import { Character } from './character';
+import { playSound } from '../ui/sound';
 
 const STEP_TIME = 0.24;
 const N = WORLD.tiles.length;
@@ -89,6 +90,7 @@ function Token({ player, slot, profile }: { player: PublicPlayer; slot: number; 
     if (k >= 1) {
       a.seg += 1;
       a.t = 0;
+      playSound('step');
       if (a.seg >= a.path.length - 1) {
         anim.current = null;
         setWalking(false);

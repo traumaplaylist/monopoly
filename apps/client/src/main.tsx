@@ -15,6 +15,7 @@ import { useStore } from './state/store';
 import { App } from './ui/App';
 import { unlockAudio } from './ui/sound';
 import './ui/styles.css';
+import './ui/sfxEvents';
 
 // Handle for automated browser checks: state reading and the same API the UI uses (no extra rights).
 (window as unknown as { __pb: unknown }).__pb = { state: () => useStore.getState(), api, send, drop: debugDropConnection };

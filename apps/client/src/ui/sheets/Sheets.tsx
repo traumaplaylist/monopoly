@@ -363,8 +363,12 @@ function MenuSheet() {
             <span>Звук</span>
           </label>
           <label className="field">
-            <span>Громкость</span>
+            <span>Громкость звуков</span>
             <input type="range" min={0} max={1} step={0.1} value={prefs.volume} onChange={(e) => setPrefs({ volume: Number(e.target.value) })} />
+          </label>
+          <label className="field">
+            <span>Громкость музыки</span>
+            <input type="range" min={0} max={1} step={0.05} value={prefs.music} onChange={(e) => setPrefs({ music: Number(e.target.value) })} data-testid="music-volume" />
           </label>
           <label className="check">
             <input type="checkbox" checked={prefs.reduceMotion} onChange={(e) => setPrefs({ reduceMotion: e.target.checked })} />
