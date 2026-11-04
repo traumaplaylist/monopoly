@@ -14,6 +14,18 @@ export type Sheet =
   | { kind: 'log' }
   | null;
 
+/** Short visual effect on the board, derived from a fresh event. `start` is a performance.now() time. */
+export interface Fx {
+  id: number;
+  kind: 'money' | 'coin' | 'bought' | 'upgraded';
+  seat?: SeatId;
+  /** Coin flight target. */
+  to?: SeatId;
+  tile?: number;
+  amount?: number;
+  start: number;
+}
+
 export interface MoveAnim {
   seat: SeatId;
   from: number;
@@ -34,6 +46,7 @@ interface UiState {
   offset: number;
   lastSeq: number;
   moves: MoveAnim[];
+  fx: Fx[];
   rollSeq: number;
   selectedTile: number | null;
   sheet: Sheet;
@@ -59,6 +72,7 @@ export const useStore = create<UiState>(() => ({
   offset: 0,
   lastSeq: 0,
   moves: [],
+  fx: [],
   rollSeq: 0,
   selectedTile: null,
   sheet: null,
@@ -95,12 +109,25 @@ export function applySnapshot(snap: Snapshot): void {
     const moves: MoveAnim[] = [];
     let rollSeq = prev.rollSeq;
     let chanceCard = prev.chanceCard;
+    // Effects wait until the token of that batch has walked (steps × step time).
+    const walk = Math.max(0, ...recent.filter((e) => e.t === 'moved').map((e) => (e.t === 'moved' ? Math.abs(e.steps) : 0))) * 240;
+    const t0 = performance.now() + walk + 150;
+    const fx: Fx[] = [];
+    let fxId = (prev.fx.at(-1)?.id ?? 0) + 1;
     for (const e of recent) {
+      if (e.t === 'money') {
+        if (e.to) fx.push({ id: fxId++, kind: 'money', seat: e.to, amount: e.amount, start: t0 });
+        if (e.from) fx.push({ id: fxId++, kind: 'money', seat: e.from, amount: -e.amount, start: t0 });
+        if (e.from && e.to) fx.push({ id: fxId++, kind: 'coin', seat: e.from, to: e.to, start: t0 });
+      }
+      if (e.t === 'bought') fx.push({ id: fxId++, kind: 'bought', seat: e.seat, tile: e.tile, start: t0 });
+      if (e.t === 'upgraded') fx.push({ id: fxId++, kind: 'upgraded', seat: e.seat, tile: e.tile, start: t0 });
       if (e.t === 'moved') moves.push({ seat: e.seat, from: e.from, to: e.to, steps: e.steps });
       if (e.t === 'rolled') rollSeq = e.seq;
       if (e.t === 'chance') chanceCard = { id: e.card, seat: e.seat, seq: e.seq };
     }
     patch.moves = prev.prefs.reduceMotion ? [] : sameMatch ? [...prev.moves, ...moves].slice(-12) : [];
+    patch.fx = prev.prefs.reduceMotion || !sameMatch ? [] : [...prev.fx.filter((f) => performance.now() - f.start < 3000), ...fx].slice(-24);
     patch.rollSeq = rollSeq;
     patch.chanceCard = chanceCard;
     patch.lastSeq = match.log.at(-1)?.seq ?? 0;

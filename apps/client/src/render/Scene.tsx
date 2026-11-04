@@ -5,6 +5,7 @@ import type { OrthographicCamera } from 'three';
 import { Board } from './Board';
 import { AnchorTracker } from './BoardAnchor';
 import { Dice } from './Dice';
+import { FxLayer } from './Fx';
 import { Pieces } from './Pieces';
 import { Tokens } from './Tokens';
 import { PROFILES, pickProfile } from './layout';
@@ -96,6 +97,7 @@ function SceneContent() {
         <Pieces profile={profile} />
         <Tokens profile={profile} />
         <Dice profile={profile} />
+        <FxLayer profile={profile} />
       </group>
     </>
   );
