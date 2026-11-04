@@ -6,8 +6,10 @@ import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
 import { GROUPS, WORLD } from '@pb/content';
 import type { TileDef } from '@pb/content';
 
-export const UI_FONT = 'Rubik, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
-export const DISPLAY_FONT = 'Oswald, "Arial Narrow", "Roboto Condensed", sans-serif';
+export const UI_FONT = 'Nunito, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+export const DISPLAY_FONT = 'Nunito, "Arial Rounded MT Bold", sans-serif';
+/** Weight used with DISPLAY_FONT on canvas (Nunito Black). */
+export const DISPLAY_WEIGHT = 900;
 const EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
 
 export const VISUAL_ICONS: Record<string, string> = {
@@ -217,7 +219,7 @@ function cardBackground(ctx: CanvasRenderingContext2D, W: number, H: number, col
 
 function label(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, base: number, color: string, shadow: boolean) {
   ctx.save();
-  fit(ctx, text, maxW, base, 700, DISPLAY_FONT);
+  fit(ctx, text, maxW, base, DISPLAY_WEIGHT, DISPLAY_FONT);
   ctx.fillStyle = color;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -296,7 +298,7 @@ function drawIcon(ctx: CanvasRenderingContext2D, t: TileDef, cx: number, cy: num
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const e = VISUAL_ICONS[t.visual] ?? '?';
-    ctx.font = e === '?' ? `700 ${size * 1.05}px ${DISPLAY_FONT}` : `${size * 0.8}px ${EMOJI_FONT}`;
+    ctx.font = e === '?' ? `${DISPLAY_WEIGHT} ${size * 1.05}px ${DISPLAY_FONT}` : `${size * 0.8}px ${EMOJI_FONT}`;
     ctx.fillText(e, cx, cy + size * 0.04);
   }
   ctx.restore();
@@ -304,7 +306,7 @@ function drawIcon(ctx: CanvasRenderingContext2D, t: TileDef, cx: number, cy: num
 
 function priceTag(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, value: string, ink: string) {
   ctx.save();
-  ctx.font = `700 ${size}px ${DISPLAY_FONT}`;
+  ctx.font = `${DISPLAY_WEIGHT} ${size}px ${DISPLAY_FONT}`;
   const tw = ctx.measureText(value).width;
   const r = size * 0.36;
   const gap = size * 0.18;
@@ -462,7 +464,7 @@ export function createDeckTexture(kind: 'chance' | 'minigame', w: number, d: num
   ctx.shadowOffsetY = H * 0.015;
   ctx.fillStyle = '#fff';
   if (kind === 'chance' || !icon) {
-    ctx.font = `700 ${H * 0.48}px ${DISPLAY_FONT}`;
+    ctx.font = `${DISPLAY_WEIGHT} ${H * 0.48}px ${DISPLAY_FONT}`;
     ctx.fillText('?', W / 2, H * 0.4);
   } else {
     ctx.drawImage(icon, W / 2 - H * 0.24, H * 0.16, H * 0.48, H * 0.48);

@@ -20,7 +20,7 @@
 ## Технологии (фактически установлено)
 - Node.js ≥ 22.13 (в облачной среде проверено на 22.22), npm workspaces, один `package-lock.json`.
 - TypeScript 7 (`strict`, `noUncheckedIndexedAccess`), один корневой `tsconfig.json` на весь монорепозиторий.
-- Клиент: React 19, Vite 8, three 0.186, @react-three/fiber 9, @react-three/drei 10, Zustand 5, socket.io-client 4, шрифт `@fontsource/rubik`.
+- Клиент: React 19, Vite 8, three 0.186, @react-three/fiber 9, @react-three/drei 10, Zustand 5, socket.io-client 4, шрифт `@fontsource/nunito` (Nunito 900 — заголовки, клетки, деньги; 600 — текст).
 - Сервер: socket.io 4, встроенный `node:sqlite` (без нативных модулей), zod 4 (схемы в `packages/protocol`), tsx (dev), esbuild (сборка).
 - Тесты: Vitest 5 (ядро, сервер, раскладка), Playwright 1.63 (E2E; версия закреплена под браузер облачной среды).
 - Мобильная оболочка: Capacitor 8.5 (`apps/client/capacitor.config.json`, нативные проекты `apps/client/android`, `apps/client/ios`, плагин `@capacitor/app`).

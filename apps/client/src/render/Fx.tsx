@@ -10,7 +10,7 @@ import type { Fx } from '../state/store';
 import { TILE_HEIGHT, tileRect } from './layout';
 import type { Profile } from './layout';
 import { tileSpot } from './Tokens';
-import { DISPLAY_FONT } from './tileArt';
+import { DISPLAY_FONT, DISPLAY_WEIGHT } from './tileArt';
 
 const LIFE = 1600;
 const COIN_LIFE = 750;
@@ -26,7 +26,7 @@ function textTexture(text: string, fill: string, stroke: string, size = 96, rota
   const x = c.getContext('2d')!;
   x.translate(256, 96);
   x.rotate(rotate);
-  x.font = `700 ${size}px ${DISPLAY_FONT}`;
+  x.font = `${DISPLAY_WEIGHT} ${size}px ${DISPLAY_FONT}`;
   x.textAlign = 'center';
   x.textBaseline = 'middle';
   x.lineJoin = 'round';
