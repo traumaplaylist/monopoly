@@ -41,6 +41,12 @@ export const FLUENT = new Set([
   'flag', 'receipt', 'gamepad', 'gavel', 'coffee', 'car', 'swords', 'plane', 'pyramid', 'columns', 'fish', 'palm',
   'landmark', 'film', 'sun', 'cactus', 'guitar', 'umbrella', 'ship', 'moon', 'citrus', 'music', 'ferris', 'pizza',
   'shirt', 'sailboat', 'wine', 'bread', 'utensils', 'sakura', 'tower', 'money', 'dice',
+  // «По России»
+  'bear', 'comet', 'gem', 'books', 'spruce', 'seal', 'rocket', 'castle', 'mosque', 'sunflower', 'mountain', 'tiger',
+  'volcano', 'anchor', 'bell', 'dolls', 'church', 'wood', 'snowflake', 'whale', 'fountain', 'bridge', 'train',
+  // «Космос»
+  'newmoon', 'astronaut', 'satellite', 'robot', 'desert', 'cloud', 'rain', 'fire', 'pick', 'rock', 'cyclone', 'bolt',
+  'ice', 'fog', 'droplet', 'saturn', 'sparkles', 'dizzy', 'hole', 'galaxy', 'star', 'telescope', 'ufo',
 ]);
 
 export function fluentUrl(visual: string): string | null {

@@ -105,10 +105,10 @@ export async function until(pred: () => boolean, ms = 4000): Promise<void> {
 }
 
 /** Create a room with 4 connected, ready guests and start the match. */
-export async function fullTable(url: string) {
+export async function fullTable(url: string, settings: Record<string, unknown> = {}) {
   const clients = ['Аня', 'Боря', 'Вика', 'Гоша'].map((n) => new TestClient(url, n));
   for (const c of clients) await c.hello();
-  const created = await clients[0]!.emit<{ ok: boolean; code: string }>(EV.create, { settings: { minigameEvery: 2 } });
+  const created = await clients[0]!.emit<{ ok: boolean; code: string }>(EV.create, { settings: { minigameEvery: 2, ...settings } });
   for (const c of clients.slice(1)) {
     const r = await c.emit(EV.join, { code: created.code });
     if (!r.ok) throw new Error(`join failed ${r.error}`);

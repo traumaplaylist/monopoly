@@ -1,4 +1,5 @@
-import { RULESET } from '@pb/content';
+import { MAPS, RULESET } from '@pb/content';
+import type { EmoteShow } from '@pb/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { EV } from '@pb/protocol';
 import { ManualClock } from '../src/clock';
@@ -310,4 +311,47 @@ describe('полная партия через сервер', () => {
     expect(next.round).toBe(1);
     expect(next.players.every((p) => p.cash === RULESET.startCash && p.items.join() === 'shield')).toBe(true);
   }, 120_000);
+});
+
+describe('карты, быстрая партия, реакции', () => {
+  it('выбранная карта и быстрая партия попадают в матч; «Случайная» выбирает одну из карт', async () => {
+    const { url } = await boot();
+    const { clients } = await fullTable(url, { map: 'space', length: 'quick' });
+    cleanup.push(() => clients.forEach((c) => c.close()));
+    const m = clients[0]!.snap!.match!;
+    expect(m.settings.mapId).toBe('space');
+    expect(m.settings.maxRounds).toBe(RULESET.quick.maxRounds);
+    expect(m.players.every((p) => p.cash === RULESET.quick.startCash)).toBe(true);
+    // Each player starts with RULESET.quick.dealTiles cities.
+    for (const p of m.players) expect(m.tiles.filter((o) => o?.owner === p.seat)).toHaveLength(RULESET.quick.dealTiles);
+    expect(m.tiles.filter((o) => o?.owner).length).toBe(4 * RULESET.quick.dealTiles);
+    const r = await fullTable(url);
+    cleanup.push(() => r.clients.forEach((c) => c.close()));
+    const m2 = r.clients[0]!.snap!.match!;
+    expect(r.clients[0]!.snap!.room!.settings.map).toBe('random');
+    expect(MAPS.map((x) => x.id)).toContain(m2.settings.mapId);
+    expect(m2.settings.maxRounds).toBe(RULESET.maxRounds);
+    expect(m2.players[0]!.cash).toBe(RULESET.startCash);
+    // Unknown map id is rejected by the schema.
+    expect((await r.clients[0]!.emit(EV.create, { settings: { minigameEvery: 2, map: 'mars' } })).error).toBe('badRequest');
+  });
+
+  it('реакция видна всем за столом, повтор чаще раза в 1,2 с отбрасывается, мусор отклоняется', async () => {
+    const clock = new ManualClock(1_000_000);
+    const { url } = await boot({ clock });
+    const { clients } = await fullTable(url);
+    cleanup.push(() => clients.forEach((c) => c.close()));
+    const got: EmoteShow[][] = clients.map(() => []);
+    clients.forEach((c, i) => c.socket.on(EV.emoteShow, (e: EmoteShow) => got[i]!.push(e)));
+    const a = clients[0]!;
+    expect((await a.emit(EV.emote, { emote: 'laugh' })).ok).toBe(true);
+    await until(() => got.every((g) => g.length === 1));
+    expect(got.map((g) => g[0]!.seat)).toEqual([a.seat, a.seat, a.seat, a.seat]);
+    expect(got[2]![0]!.emote).toBe('laugh');
+    expect((await a.emit<{ ok: boolean; dropped?: boolean }>(EV.emote, { emote: 'fire' })).dropped).toBe(true);
+    await clock.advance(1300);
+    expect((await a.emit(EV.emote, { emote: 'fire' })).ok).toBe(true);
+    await until(() => got[3]!.length === 2);
+    expect((await a.emit(EV.emote, { emote: '<script>' })).error).toBe('badRequest');
+  });
 });

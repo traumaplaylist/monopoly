@@ -12,8 +12,8 @@ export interface WorldEventDef {
 }
 
 export const WORLD_EVENTS: readonly WorldEventDef[] = [
-  { kind: 'tourism', title: 'Сезон туризма', text: 'Все едут в страну «{country}»: аренда там ×2 весь раунд.', icon: '🧳', weight: 3 },
-  { kind: 'storm', title: 'Шторм', text: 'Аэропорты закрыты: аренду за аэропорты в этом раунде не платят.', icon: '🌪️', weight: 2 },
+  { kind: 'tourism', title: 'Сезон туризма', text: 'Все едут {to}: аренда там ×2 весь раунд.', icon: '🧳', weight: 3 },
+  { kind: 'storm', title: 'Шторм', text: '{Hubs} закрыты: аренду за {hubs} в этом раунде не платят.', icon: '🌪️', weight: 2 },
   { kind: 'sale', title: 'Распродажа', text: 'Свободные объекты в этом раунде продаются на 25% дешевле.', icon: '🏷️', weight: 2 },
   { kind: 'festival', title: 'Фестиваль', text: 'За проход «Старта» в этом раунде — двойная зарплата.', icon: '🎉', weight: 2 },
   { kind: 'taxHoliday', title: 'Налоговые каникулы', text: 'Налоговые клетки в этом раунде ничего не стоят.', icon: '🏖️', weight: 1 },

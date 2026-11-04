@@ -5,6 +5,7 @@ import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import {
   AppearanceSchema, AvatarSchema,
+  EmoteSchema,
   CreateRoomSchema,
   EV,
   HelloSchema,
@@ -14,7 +15,7 @@ import {
   ReadySchema,
   RoomSettingsSchema,
 } from '@pb/protocol';
-import type { Ack } from '@pb/protocol';
+import type { Ack, EmoteShow } from '@pb/protocol';
 import type { Clock } from './clock';
 import type { ServerConfig } from './config';
 import { RoomService, ServiceError } from './rooms';
@@ -148,6 +149,14 @@ export function createGameServer(config: ServerConfig, clock: Clock): GameServer
     on(EV.ready, ReadySchema, (data, g) => service.setReady(g, data.ready));
     on(EV.avatar, AvatarSchema, (data, g) => service.setAvatar(g, data.avatar));
     on(EV.appearance, AppearanceSchema, (data, g) => service.setAppearance(g, data.appearance));
+    on(EV.emote, EmoteSchema, (data, g) => {
+      const r = service.emote(g);
+      if (!r) return { ok: true, dropped: true };
+      const show: EmoteShow = { seat: r.seat, emote: data.emote, at: r.at };
+      for (const guest of service.guestsOfRoom(r.roomId))
+        for (const s of sockets.values()) if (s.data.guestId === guest && service.isActive(guest, s.id)) s.emit(EV.emoteShow, show);
+      return { ok: true };
+    });
     on(EV.settings, RoomSettingsSchema, (data, g) => service.setSettings(g, data));
     on(EV.start, null, (_d, g) => service.start(g));
     on(EV.leave, null, (_d, g) => service.leave(g));

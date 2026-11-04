@@ -1,15 +1,16 @@
 import { purchasePrice } from '@pb/game-core';
 import { useEffect } from 'react';
-import { GROUPS, ITEM_INFO, WORLD, RULESET, groupTiles } from '@pb/content';
+import { GROUPS, ITEM_INFO, RULESET, groupTiles } from '@pb/content';
 import type { ItemKind } from '@pb/content';
 import { rentFor } from '@pb/game-core';
 import type { MatchState } from '@pb/game-core';
 import { send } from '../../net/connection';
 import { set, useStore } from '../../state/store';
-import { money, seatName } from '../format';
+import { itemDescription, money, seatName } from '../format';
 import { currentSeat, useMatch, useMe } from '../hooks';
 import { specialColor } from '../../render/tileArt';
 import { TileIcon } from '../TileIcon';
+import { mapNow } from '../mapNow';
 
 const ITEM_ICON: Record<ItemKind, string> = { shield: '🛡️', discount: '🏷️', cone: '🚧', ticket: '🎫' };
 
@@ -33,10 +34,10 @@ export function TileSummary() {
   const m = useMatch();
   const selected = useStore((s) => s.selectedTile);
   const index = selected ?? m.players.find((p) => p.seat === currentSeat(m))!.position;
-  const t = WORLD.tiles[index]!;
+  const t = mapNow().tiles[index]!;
   const o = m.tiles[index];
   const g = t.group ? GROUPS[t.group] : null;
-  const owned = g && o?.owner ? groupTiles(WORLD, t.group!).filter((i) => m.tiles[i]?.owner === o.owner).length : 0;
+  const owned = g && o?.owner ? groupTiles(mapNow(), t.group!).filter((i) => m.tiles[i]?.owner === o.owner).length : 0;
   return (
     <button className="tile-summary" onClick={() => set({ selectedTile: index, sheet: { kind: 'tile', tile: index } })} data-testid="tile-summary">
       <span className="ts-icon" style={{ background: specialColor(t) ?? '#5b4c86' }}>
@@ -53,7 +54,7 @@ export function TileSummary() {
                   {money(rentFor(m as unknown as MatchState, index))}
                 </>
               )}
-              {g && ` · ${seatName(m, o.owner)} ${owned}/${groupTiles(WORLD, t.group!).length}`}
+              {g && ` · ${seatName(m, o.owner)} ${owned}/${groupTiles(mapNow(), t.group!).length}`}
             </>
           ) : t.price ? (
             <>
@@ -104,7 +105,7 @@ function Items() {
           <button
             key={i}
             className="slot"
-            title={`${ITEM_INFO[it].name}: ${ITEM_INFO[it].description}${it === 'cone' && !calm ? ' (ставится в свой ход)' : ''}`}
+            title={`${ITEM_INFO[it].name}: ${itemDescription(it)}${it === 'cone' && !calm ? ' (ставится в свой ход)' : ''}`}
             disabled={it === 'cone' ? !calm : it === 'ticket' ? !preRoll : true}
             onClick={() => (it === 'cone' || it === 'ticket') && set({ placing: it, sheet: null })}
             data-testid={`item-${it}`}

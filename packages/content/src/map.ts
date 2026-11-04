@@ -153,17 +153,72 @@ export const WORLD_TILES: readonly TileDef[] = [
   prop(39, 'tokyo', 'Токио', 'Токио', 'japan', 400, 80, 'tower'),
 ];
 
+/** Words that differ between map themes (airport vs station vs spaceport, city vs place). */
+export interface MapVocab {
+  /** «Аэропорт» */
+  hub: string;
+  /** «Аэропорты» */
+  hubs: string;
+  /** «аэропорта» (до ближайшего …) */
+  hubGen: string;
+  /** «аэропорт» (в любой …) */
+  hubAcc: string;
+  /** Rent rows by number of hubs owned: «1 аэропорт» … «4 аэропорта». */
+  hubCount: readonly [string, string, string, string];
+  /** Rent rows of a 3-tile set: one / two of three / all. */
+  setRows: readonly [string, string, string];
+  /** «2 из 3 городов ×1,5, вся страна ×2» */
+  rentHint: string;
+  /** «в страну «Египет»» — where tourists go in the «tourism» world event. */
+  setTo: (groupName: string) => string;
+}
+
+export interface MapTheme {
+  /** Backdrop radial gradient (centre → edge). */
+  bg: readonly [string, string, string];
+  /** Board centre artwork. */
+  paper: 'city' | 'taiga' | 'space';
+  /** Scattered 3D decor in the board centre. */
+  decor: 'trees' | 'spruce' | 'asteroids';
+}
+
 export interface MapDef {
   id: string;
   name: string;
+  /** One-line pitch for the lobby. */
+  tagline: string;
   tiles: readonly TileDef[];
   corners: readonly number[];
+  /** Display names and colours of the groups (economy — upgradeCost — stays in GROUPS). */
+  groups: Record<GroupId, { name: string; color: string }>;
+  vocab: MapVocab;
+  theme: MapTheme;
+  /** Chance card text overrides for cards that name a place ({ id: [title, text] }). */
+  cards?: Record<string, readonly [string, string]>;
 }
 
 export const BOARD_SIZE_TILES = 40;
 export const CORNERS = [0, 10, 20, 30] as const;
 
-export const WORLD: MapDef = { id: 'world', name: 'Вокруг света', tiles: WORLD_TILES, corners: CORNERS };
+export const WORLD: MapDef = {
+  id: 'world',
+  name: 'Вокруг света',
+  tagline: '8 стран, 24 города и 4 аэропорта',
+  tiles: WORLD_TILES,
+  corners: CORNERS,
+  groups: Object.fromEntries(GROUP_ORDER.map((g) => [g, { name: GROUPS[g].name, color: GROUPS[g].color }])) as MapDef['groups'],
+  vocab: {
+    hub: 'Аэропорт',
+    hubs: 'Аэропорты',
+    hubGen: 'аэропорта',
+    hubAcc: 'аэропорт',
+    hubCount: ['1 аэропорт', '2 аэропорта', '3 аэропорта', '4 аэропорта'],
+    setRows: ['Один город', '2 города из 3', 'Вся страна'],
+    rentHint: '2 из 3 городов ×1,5, вся страна ×2',
+    setTo: (n) => `в страну «${n}»`,
+  },
+  theme: { bg: ['#4a3f86', '#332a66', '#221c47'], paper: 'city', decor: 'trees' },
+};
 
 export function groupTiles(map: MapDef, group: GroupId): number[] {
   return map.tiles.filter((t) => t.group === group).map((t) => t.index);

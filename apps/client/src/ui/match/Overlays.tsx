@@ -1,11 +1,10 @@
 import { matchTitles } from '@pb/game-core';
 import { useEffect, useState } from 'react';
-import { CHANCE_CARDS, GROUPS, ITEM_INFO, WORLD_EVENTS } from '@pb/content';
-import type { GroupId } from '@pb/content';
+import { CHANCE_CARDS, ITEM_INFO, WORLD_EVENTS } from '@pb/content';
 import type { ChanceEffect } from '@pb/content';
 import { api, reclaim, send } from '../../net/connection';
 import { set, useStore } from '../../state/store';
-import { money, seatName } from '../format';
+import { chanceText, money, seatName, worldEventBody } from '../format';
 import { useMatch, useMe } from '../hooks';
 import { Portrait } from '../Portrait';
 import { playSound } from '../sound';
@@ -26,7 +25,7 @@ export function WorldEventPopup() {
       <div className="wc-icon">{d.icon}</div>
       <div className="cc-deck">Раунд {card.round} · событие мира</div>
       <div className="cc-title">{d.title}</div>
-      <div>{d.text.replace('{country}', card.group ? GROUPS[card.group as GroupId].name : '')}</div>
+      <div>{worldEventBody(d.kind, card.group)}</div>
     </div>
   );
 }
@@ -42,13 +41,14 @@ export function ChanceCardPopup() {
   }, [card]);
   if (!card) return null;
   const c = CHANCE_CARDS.find((x) => x.id === card.id);
-  if (!c) return null;
+  const tx = chanceText(card.id);
+  if (!c || !tx) return null;
   return (
     <div className="chance-card" onClick={() => set({ chanceCard: null })} data-testid="chance-card">
       <img className="cc-icon" src={chanceIcon(c.effect)} alt="" />
       <div className="cc-deck">Шанс · {seatName(m, card.seat, me)}</div>
-      <div className="cc-title">{c.title}</div>
-      <div>{c.text}</div>
+      <div className="cc-title">{tx.title}</div>
+      <div>{tx.text}</div>
     </div>
   );
 }

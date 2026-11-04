@@ -6,6 +6,7 @@ import { send } from '../../net/connection';
 import { anchorRef } from '../../render/BoardAnchor';
 import { set, useStore } from '../../state/store';
 import { money, secondsLeft, seatName, sideText, tileName } from '../format';
+import { mapNow } from '../mapNow';
 import { currentSeat, tileDef, useMatch, useNow } from '../hooks';
 
 const asState = (m: PublicMatch) => m as unknown as MatchState;
@@ -86,7 +87,7 @@ export function Prompt() {
   if (placing) {
     body = (
       <div className="prompt slim">
-        <div className="prompt-title">{placing === 'ghostBlock' ? 'Выберите чужой объект, который нельзя будет улучшить' : placing === 'ticket' ? 'Выберите аэропорт, куда полетите' : 'Выберите обычную клетку для ловушки'}</div>
+        <div className="prompt-title">{placing === 'ghostBlock' ? 'Выберите чужой объект, который нельзя будет улучшить' : placing === 'ticket' ? `Выберите ${mapNow().vocab.hubAcc}, куда отправитесь` : 'Выберите обычную клетку для ловушки'}</div>
         <button className="btn" onClick={() => set({ placing: null })}>
           Отмена
         </button>
@@ -102,7 +103,7 @@ export function Prompt() {
       <div className="prompt">
         <div className="prompt-title">«{t.name}» свободна</div>
         <div className="muted">
-          Цена <Coins n={price} />{price !== t.price ? ' (распродажа)' : ''}, {t.group === 'air' ? `аренда ${RULESET.airportRent.join(' / ')} по числу аэропортов` : `аренда ${money(t.baseRent!)}; 2 из 3 городов ×1,5, вся страна ×2`}
+          Цена <Coins n={price} />{price !== t.price ? ' (распродажа)' : ''}, {t.group === 'air' ? `аренда ${RULESET.airportRent.join(' / ')} по числу у владельца` : `аренда ${money(t.baseRent!)}; ${mapNow().vocab.rentHint}`}
         </div>
         <div className="row">
           <button className="btn primary" disabled={free < price} onClick={() => send({ type: 'BUY' })} data-testid="buy">

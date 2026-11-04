@@ -1,8 +1,11 @@
-import { GROUPS, GROUP_ORDER, groupTiles, WORLD, RULESET } from '@pb/content';
+import { GROUPS, GROUP_ORDER, groupTiles, RULESET } from '@pb/content';
 import { useStore } from '../../state/store';
 import { money } from '../format';
 import { acting, currentSeat, useMatch } from '../hooks';
 import { Portrait } from '../Portrait';
+import { mapNow } from '../mapNow';
+import { groupName } from '../format';
+import { EmoteBubble } from './Emotes';
 
 export function PlayerCards() {
   const m = useMatch();
@@ -17,7 +20,7 @@ export function PlayerCards() {
         const rs = room?.seats.find((s) => s.seat === seat);
         const online = rs?.connected ?? false;
         const bot = !!rs?.isBot || !!rs?.autopilot;
-        const groups = GROUP_ORDER.filter((g) => groupTiles(WORLD, g).some((t) => m.tiles[t]?.owner === seat));
+        const groups = GROUP_ORDER.filter((g) => groupTiles(mapNow(), g).some((t) => m.tiles[t]?.owner === seat));
         return (
           <div
             key={seat}
@@ -26,6 +29,7 @@ export function PlayerCards() {
             data-testid={`player-${seat}`}
           >
             <Portrait avatar={p.avatar} color={p.color} ghost={p.role === 'ghost'} size={52} appearance={p.appearance} />
+            <EmoteBubble seat={seat} />
             <div className="pinfo">
               <div className="pname">
                 {seat === me ? 'Ты' : p.name}
@@ -62,7 +66,7 @@ export function PlayerCards() {
               {p.role === 'alive' && (
                 <div className="pbars">
                   {groups.map((g) => (
-                    <span key={g} style={{ background: GROUPS[g].color }} title={GROUPS[g].name} />
+                    <span key={g} style={{ background: GROUPS[g].color }} title={groupName(g)} />
                   ))}
                 </div>
               )}

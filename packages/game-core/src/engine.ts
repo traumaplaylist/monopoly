@@ -84,7 +84,7 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
     appearance: sanitizeAppearance(x.appearance, defaultAppearance(i)),
     color: PLAYER_COLORS[i % PLAYER_COLORS.length]!,
     role: 'alive',
-    cash: RULESET.startCash,
+    cash: settings.startCash ?? RULESET.startCash,
     position: 0,
     items: ['shield'],
     duelTokens: RULESET.duelTokens,
@@ -134,6 +134,15 @@ export function createMatch(opts: CreateMatchOptions): MatchState {
     log: [{ t: 'turnStart', seq: 1, at: opts.now, seat: order[0]!, round: 1 }],
     stats: { minigamesPlayed: 0, duelsPlayed: 0, phaseSince: opts.now, phaseTime: {} },
   };
+  // Quick match: everyone starts with a few random cities (not hubs) so rent and trades begin at once.
+  if (settings.dealTiles) {
+    const pool = rng.shuffle(MAP.tiles.filter((t) => t.kind === 'property' && t.group !== 'air').map((t) => t.index));
+    for (let k = 0; k < settings.dealTiles; k++)
+      for (const seat of order) {
+        const i = pool.pop();
+        if (i !== undefined) s.tiles[i]!.owner = seat;
+      }
+  }
   s.rng = rng.state;
   return s;
 }

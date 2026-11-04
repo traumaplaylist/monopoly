@@ -1,8 +1,34 @@
-import { CHANCE_CARDS, GROUPS, ITEM_INFO, WORLD, WORLD_EVENTS } from '@pb/content';
-import type { GroupId, WorldEventKind } from '@pb/content';
+import { CHANCE_CARDS, ITEM_INFO, WORLD_EVENTS, mapText } from '@pb/content';
+import type { GroupId, ItemKind, WorldEventKind } from '@pb/content';
 import type { MatchEvent, MoneyReason, PublicMatch, SeatId, TradeSide } from '@pb/game-core';
 
-export const tileName = (i: number) => WORLD.tiles[i]?.name ?? `#${i}`;
+import { mapNow } from './mapNow';
+
+export const tileName = (i: number) => mapNow().tiles[i]?.name ?? `#${i}`;
+
+/** Group display name on the current board. */
+export const groupName = (g: GroupId) => mapNow().groups[g].name;
+
+/** World event body with the board's words filled in. */
+export function worldEventBody(kind: WorldEventKind, group?: string | null): string {
+  const d = WORLD_EVENTS.find((x) => x.kind === kind);
+  if (!d) return '';
+  const map = mapNow();
+  const g = group ? map.groups[group as GroupId]?.name ?? '' : '';
+  return mapText(d.text.replace('{to}', map.vocab.setTo(g)), map);
+}
+
+/** Chance card title and text on the current board (place names and words differ by map). */
+export function chanceText(id: string): { title: string; text: string } | null {
+  const c = CHANCE_CARDS.find((x) => x.id === id);
+  if (!c) return null;
+  const map = mapNow();
+  const o = map.cards?.[id];
+  return { title: o?.[0] ?? c.title, text: mapText(o?.[1] ?? c.text, map) };
+}
+
+/** Item description with the board's words. */
+export const itemDescription = (item: ItemKind) => mapText(ITEM_INFO[item].description, mapNow());
 
 export const money = (n: number) => n.toLocaleString('ru-RU');
 
@@ -43,7 +69,7 @@ export function sideText(side: TradeSide): string {
 export function worldEventText(kind: WorldEventKind, group?: GroupId): string {
   const d = WORLD_EVENTS.find((x) => x.kind === kind);
   if (!d) return '';
-  return `${d.icon} ${d.title}: ${d.text.replace('{country}', group ? GROUPS[group].name : '')}`;
+  return `${d.icon} ${d.title}: ${worldEventBody(kind, group)}`;
 }
 
 /** Journal line for an event (null — not shown). */
@@ -66,8 +92,7 @@ export function eventText(m: PublicMatch, e: MatchEvent, me: SeatId | null): str
     case 'worldEvent':
       return `🌍 Раунд ${e.round}: ${worldEventText(e.kind, e.group)}`;
     case 'chance': {
-      const c = CHANCE_CARDS.find((x) => x.id === e.card);
-      return `${n(e.seat)}: Шанс — ${c?.text ?? ''}`;
+      return `${n(e.seat)}: Шанс — ${chanceText(e.card)?.text ?? ''}`;
     }
     case 'item':
       return { gained: `${n(e.seat)} получает предмет «${ITEM_INFO[e.item].name}»`, used: `${n(e.seat)} использует «${ITEM_INFO[e.item].name}»`, dropped: `${n(e.seat)}: предмет «${ITEM_INFO[e.item].name}» не поместился`, blocked: null }[e.action];
@@ -155,7 +180,7 @@ const ERRORS: Record<string, string> = {
   notOwner: 'Это не ваш объект',
   noItem: 'Нет такого предмета',
   badTrapTile: 'Сюда нельзя поставить ловушку (угол, занято или лимит)',
-  badTicketTile: 'Билет — только в другой аэропорт и только до броска кубиков',
+  badTicketTile: 'Билет — только на другую клетку-пересадку и только до броска кубиков',
   notGhost: 'Только для призраков',
   noEnergy: 'Не хватает энергии призрака',
   onePrankPerRound: 'Одна проделка за раунд',
@@ -181,6 +206,7 @@ const ERRORS: Record<string, string> = {
   avatarTaken: 'Этот персонаж уже занят',
   notFinished: 'Партия ещё идёт',
   noRoom: 'Вы не в комнате',
+  notInMatch: 'Реакции — только во время партии',
   offline: 'Нет соединения с сервером',
   timeout: 'Сервер не ответил, попробуйте ещё раз',
   serverError: 'Ошибка сервера',

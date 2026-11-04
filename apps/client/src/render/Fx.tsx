@@ -2,8 +2,12 @@
 // payer to owner on rent, a «КУПЛЕНО» stamp on purchase, a star on upgrade. Pure visuals: they never
 // touch game state, and with `reduceMotion` the store does not create them at all.
 import { useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
-import { CanvasTexture, MeshPhysicalMaterial, SRGBColorSpace, SpriteMaterial } from 'three';
+import { useEffect, useMemo, useRef } from 'react';
+import { CanvasTexture, MeshPhysicalMaterial, SRGBColorSpace, SpriteMaterial, TextureLoader } from 'three';
+import type { Texture } from 'three';
+import type { Emote } from '@pb/content';
+import type { EmoteFx } from '../state/store';
+import { EMOTE_LIFE, emoteUrl } from '../ui/match/Emotes';
 import type { Group, Mesh, Sprite } from 'three';
 import { useStore } from '../state/store';
 import type { Fx } from '../state/store';
@@ -108,18 +112,58 @@ function Coin({ fx, profile }: { fx: Fx; profile: Profile }) {
   );
 }
 
+const emoteTex = new Map<Emote, Texture>();
+function emoteTexture(e: Emote, onLoad: () => void): Texture {
+  let t = emoteTex.get(e);
+  if (!t) {
+    t = new TextureLoader().load(emoteUrl(e), onLoad);
+    t.colorSpace = SRGBColorSpace;
+    emoteTex.set(e, t);
+  }
+  return t;
+}
+
+/** Reaction over the sender's figure: pops in, bobs, floats up and fades. */
+function EmoteSprite({ fx, profile }: { fx: EmoteFx; profile: Profile }) {
+  const ref = useRef<Sprite>(null);
+  const invalidate = useThree((s) => s.invalidate);
+  const mat = useMemo(() => new SpriteMaterial({ map: emoteTexture(fx.emote, () => invalidate()), transparent: true, depthTest: false, depthWrite: false }), [fx, invalidate]);
+  useFrame(() => {
+    const sp = ref.current;
+    const at = spotOf(fx.seat, profile);
+    if (!sp || !at) return;
+    const k = (performance.now() - fx.start) / EMOTE_LIFE;
+    sp.visible = k >= 0 && k <= 1;
+    if (!sp.visible) return;
+    const pop = k < 0.1 ? (k / 0.1) * 1.25 : k < 0.18 ? 1.25 - ((k - 0.1) / 0.08) * 0.25 : 1;
+    const size = 1.0 * pop;
+    // The camera looks almost straight down: lift the bubble «up the screen» (−z), not just up in y.
+    // Top row: no room above (screen edge), so the bubble goes below, into the board.
+    const dir = at[2] < -profile.height / 2 + 1.6 ? 1 : -1;
+    sp.position.set(at[0], 1.8, at[2] + dir * (1.0 + k * 0.5) + Math.sin(k * 18) * 0.04);
+    sp.scale.set(size, size, 1);
+    mat.opacity = k < 0.8 ? 1 : 1 - (k - 0.8) / 0.2;
+  });
+  return <sprite ref={ref} material={mat} renderOrder={11} visible={false} />;
+}
+
 /** All live effects; keeps frames coming only while something is animating. */
 export function FxLayer({ profile }: { profile: Profile }) {
   const fx = useStore((s) => s.fx);
+  const emotes = useStore((s) => s.emotes);
   const invalidate = useThree((s) => s.invalidate);
   const group = useRef<Group>(null);
   useFrame(() => {
     const now = performance.now();
-    if (fx.some((f) => now - f.start < LIFE + 100)) invalidate();
+    if (fx.some((f) => now - f.start < LIFE + 100) || emotes.some((e) => now - e.start < EMOTE_LIFE + 100)) invalidate();
   });
+  useEffect(() => invalidate(), [emotes, invalidate]);
   return (
     <group ref={group}>
       {fx.map((f) => (f.kind === 'coin' ? <Coin key={f.id} fx={f} profile={profile} /> : <FloatText key={f.id} fx={f} profile={profile} />))}
+      {emotes.map((e) => (
+        <EmoteSprite key={e.id} fx={e} profile={profile} />
+      ))}
     </group>
   );
 }

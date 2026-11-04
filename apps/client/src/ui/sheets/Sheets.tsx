@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { GROUPS, WORLD, RULESET, WORLD_EVENTS, groupTiles } from '@pb/content';
+import { GROUPS, RULESET, WORLD_EVENTS, groupTiles } from '@pb/content';
 import { available, isTradeableTile, mortgageValue, ownedTiles, rentFor, unmortgageCost, upgradeCost } from '@pb/game-core';
 import type { Command, MatchState, PublicMatch, TradeSide } from '@pb/game-core';
 import { api, send } from '../../net/connection';
 import { get, set, setPrefs, useStore } from '../../state/store';
 import { closeSheet } from '../actions';
-import { eventText, money, seatName, tileName } from '../format';
+import { eventText, groupName, money, seatName, tileName } from '../format';
 import { currentSeat, useMatch, useMe } from '../hooks';
 import { MINIGAME_INFO } from '@pb/game-core';
 import { specialColor } from '../../render/tileArt';
 import { TileIcon } from '../TileIcon';
+import { mapNow } from '../mapNow';
 
 const S = (m: PublicMatch) => m as unknown as MatchState;
 
@@ -58,18 +59,19 @@ function manageReason(m: PublicMatch, seat: string | null, raising: boolean): st
 /** Rent ladder of a tile; the row that applies now (without world events) is highlighted. */
 function RentTable({ tile }: { tile: number }) {
   const m = useMatch();
-  const t = WORLD.tiles[tile]!;
+  const t = mapNow().tiles[tile]!;
   const o = m.tiles[tile];
   if (!o) return null;
-  const group = groupTiles(WORLD, t.group!);
+  const group = groupTiles(mapNow(), t.group!);
   const mine = o.owner ? group.filter((i) => m.tiles[i]?.owner === o.owner && !m.tiles[i]!.mortgaged).length : 0;
+  const v = mapNow().vocab;
   const rows: [string, number, boolean][] =
     t.group === 'air'
-      ? RULESET.airportRent.map((v, k) => [`${k + 1} аэропорт${k === 0 ? '' : k < 4 ? 'а' : 'ов'} у владельца`, v, !!o.owner && mine === k + 1] as [string, number, boolean])
+      ? RULESET.airportRent.map((r, k) => [`${v.hubCount[k]} у владельца`, r, !!o.owner && mine === k + 1] as [string, number, boolean])
       : [
-          ['Один город', t.baseRent!, !!o.owner && o.level === 0 && mine < group.length - 1],
-          ['2 города из 3', Math.floor(t.baseRent! * RULESET.partialSetMultiplier), !!o.owner && o.level === 0 && mine === group.length - 1],
-          ['Вся страна', t.baseRent! * RULESET.fullSetMultiplier, !!o.owner && o.level === 0 && mine === group.length],
+          [v.setRows[0], t.baseRent!, !!o.owner && o.level === 0 && mine < group.length - 1],
+          [v.setRows[1], Math.floor(t.baseRent! * RULESET.partialSetMultiplier), !!o.owner && o.level === 0 && mine === group.length - 1],
+          [v.setRows[2], t.baseRent! * RULESET.fullSetMultiplier, !!o.owner && o.level === 0 && mine === group.length],
           ['Уровень 1 ◆', t.baseRent! * RULESET.upgradeMultipliers[1], o.level === 1],
           ['Уровень 2 ◆◆', t.baseRent! * RULESET.upgradeMultipliers[2], o.level === 2],
           ['Уровень 3 ◆◆◆', t.baseRent! * RULESET.upgradeMultipliers[3], o.level === 3],
@@ -93,11 +95,11 @@ function RentTable({ tile }: { tile: number }) {
 function TileSheet({ tile }: { tile: number }) {
   const m = useMatch();
   const me = useStore((s) => s.seat);
-  const t = WORLD.tiles[tile]!;
+  const t = mapNow().tiles[tile]!;
   const o = m.tiles[tile];
   const g = t.group ? GROUPS[t.group] : null;
   const mine = !!o && o.owner === me;
-  const group = t.group ? groupTiles(WORLD, t.group) : [];
+  const group = t.group ? groupTiles(mapNow(), t.group) : [];
   const trap = m.traps.find((x) => x.tile === tile);
   const blocked = m.upgradeBlocks.some((b) => b.tile === tile);
   const why = manageReason(m, me, false);
@@ -111,7 +113,7 @@ function TileSheet({ tile }: { tile: number }) {
         <span className="big-icon">
           <TileIcon visual={t.visual} size={32} />
         </span>
-        <span>{g ? g.name : t.shortLabel}</span>
+        <span>{g ? groupName(t.group!) : t.shortLabel}</span>
       </div>
       <p className="muted">{t.description}</p>
       {t.kind === 'property' && o && (
@@ -173,7 +175,7 @@ function AssetsSheet() {
       {tiles.length === 0 && <p className="muted">У вас пока нет собственности.</p>}
       <div className="asset-list">
         {tiles.map((i) => {
-          const t = WORLD.tiles[i]!;
+          const t = mapNow().tiles[i]!;
           const o = m.tiles[i]!;
           return (
             <button key={i} className={`asset ${o.mortgaged ? 'mortgaged' : ''}`} onClick={() => set({ selectedTile: i, sheet: { kind: 'tile', tile: i } })}>
@@ -199,7 +201,7 @@ function TileChecklist({ m, owner, picked, toggle }: { m: PublicMatch; owner: st
         return (
           <label key={i} className={ok ? '' : 'disabled'} title={ok ? '' : 'В группе есть улучшения'}>
             <input type="checkbox" disabled={!ok} checked={picked.includes(i)} onChange={() => toggle(i)} />
-            <span className="swatch" style={{ background: GROUPS[WORLD.tiles[i]!.group!].color }} />
+            <span className="swatch" style={{ background: GROUPS[mapNow().tiles[i]!.group!].color }} />
             {tileName(i)}
             {m.tiles[i]!.mortgaged && <small> (залог)</small>}
           </label>
@@ -271,10 +273,10 @@ function DuelSheet({ tile: preset }: { tile?: number }) {
   const me = useMe()!;
   const eligible = useMemo(
     () =>
-      WORLD.tiles
+      mapNow().tiles
         .filter((t) => {
           const o = m.tiles[t.index];
-          return o?.owner && o.owner !== me.seat && !o.mortgaged && !groupTiles(WORLD, t.group!).some((i) => (m.tiles[i]?.level ?? 0) > 0);
+          return o?.owner && o.owner !== me.seat && !o.mortgaged && !groupTiles(mapNow(), t.group!).some((i) => (m.tiles[i]?.level ?? 0) > 0);
         })
         .map((t) => t.index),
     [m, me.seat],
@@ -284,7 +286,7 @@ function DuelSheet({ tile: preset }: { tile?: number }) {
   useEffect(() => {
     if (tile === null && eligible.length) setTile(eligible[0]!);
   }, [eligible, tile]);
-  const base = tile !== null ? WORLD.tiles[tile]!.price! : 0;
+  const base = tile !== null ? mapNow().tiles[tile]!.price! : 0;
   const [low, setLow] = useState(0);
   const [high, setHigh] = useState(0);
   useEffect(() => {
@@ -319,7 +321,7 @@ function DuelSheet({ tile: preset }: { tile?: number }) {
         <select value={tile ?? ''} onChange={(e) => setTile(Number(e.target.value))}>
           {eligible.map((i) => (
             <option key={i} value={i}>
-              {tileName(i)} — {seatName(m, m.tiles[i]!.owner)} (цена {WORLD.tiles[i]!.price})
+              {tileName(i)} — {seatName(m, m.tiles[i]!.owner)} (цена {mapNow().tiles[i]!.price})
             </option>
           ))}
         </select>
@@ -438,7 +440,7 @@ function MenuSheet() {
             <b>Цель:</b> через {m.settings.maxRounds} раундов иметь наибольшую стоимость (деньги + половина цены незаложенных объектов и улучшений). Последний не обанкротившийся побеждает сразу.
           </p>
           <p>
-            <b>Ход:</b> бросок двух кубиков, покупка свободного объекта или аукцион, аренда владельцу. Два города страны из трёх — аренда ×1,5, вся страна — ×2, улучшения ×4/×10/×20. Аэропорты: аренда 25/50/100/200 по числу аэропортов у владельца, не улучшаются.
+            <b>Ход:</b> бросок двух кубиков, покупка свободного объекта или аукцион, аренда владельцу. Группа из трёх мест: {mapNow().vocab.rentHint}, улучшения ×4/×10/×20. {mapNow().vocab.hubs}: аренда {RULESET.airportRent.join('/')} по числу у владельца, не улучшаются.
           </p>
           <p>
             <b>Дуэль:</b> до {RULESET.duelTokens} вызовов за партию. Две цены заранее, владелец соглашается или отказывается.

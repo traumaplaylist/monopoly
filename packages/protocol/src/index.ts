@@ -1,7 +1,7 @@
 // Wire protocol between client and server. All inbound payloads are validated with these schemas.
 import { z } from 'zod';
 import type { Command, PrivateView, PublicMatch, SeatId } from '@pb/game-core';
-import { CLOTH_COLORS, HAIR_COLORS, OUTFIT_IDS, PACKS, SKIN_TONES } from '@pb/content';
+import { CLOTH_COLORS, EMOTES, HAIR_COLORS, MAP_IDS, OUTFIT_IDS, PACKS, SKIN_TONES } from '@pb/content';
 import type { Appearance } from '@pb/content';
 
 export const PROTOCOL_VERSION = 1;
@@ -79,8 +79,21 @@ export const RoomSettingsSchema = z.object({
   debugBots: z.boolean().optional(),
   /** Fill empty seats with bots when the host starts (allowed in production). */
   bots: z.boolean().optional(),
+  /** Board id or 'random' (the server picks one at start). Default: 'random'. */
+  map: z.enum(['random', ...MAP_IDS]).optional(),
+  /** 'quick' = shorter match (RULESET.quick). */
+  length: z.enum(['normal', 'quick']).optional(),
 });
 export type RoomSettings = z.infer<typeof RoomSettingsSchema>;
+
+export const EmoteSchema = z.object({ emote: z.enum(EMOTES) });
+/** Server → room: someone reacted. */
+export interface EmoteShow {
+  seat: SeatId;
+  emote: (typeof EMOTES)[number];
+  /** Server time. */
+  at: number;
+}
 
 export const CreateRoomSchema = z.object({ settings: RoomSettingsSchema.optional() });
 export const JoinRoomSchema = z.object({ code: RoomCodeSchema });
@@ -151,6 +164,8 @@ export const EV = {
   ready: 'room:ready',
   avatar: 'room:avatar',
   appearance: 'room:appearance',
+  emote: 'room:emote',
+  emoteShow: 'room:emoteShow',
   settings: 'room:settings',
   start: 'room:start',
   leave: 'room:leave',

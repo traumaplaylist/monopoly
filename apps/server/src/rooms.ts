@@ -2,7 +2,7 @@
 // All handlers are synchronous: SQLite writes are synchronous and Node runs one handler at a time,
 // so commands of one room are processed strictly sequentially and committed before any ack/broadcast.
 import crypto from 'node:crypto';
-import { GROUP_ORDER, RULESET, WORLD, defaultAppearance, groupTiles, sanitizeAppearance } from '@pb/content';
+import { EMOTE_COOLDOWN_MS, GROUP_ORDER, MAPS, RULESET, WORLD, defaultAppearance, getMap, groupTiles, sanitizeAppearance } from '@pb/content';
 import type { Appearance } from '@pb/content';
 import { advance, applyCommand, botCommand, createMatch, nextDeadline, privateView, publicView, shiftTime } from '@pb/game-core';
 import type { Command, MatchEvent, SeatId } from '@pb/game-core';
@@ -46,6 +46,8 @@ export class RoomService {
   private rooms = new Map<string, Runtime>();
   /** guestId → active controlling connection id */
   private active = new Map<string, string>();
+  /** guestId → time of the last reaction (cooldown; not persisted). */
+  private lastEmote = new Map<string, number>();
 
   constructor(
     private store: Store,
@@ -180,7 +182,7 @@ export class RoomService {
       status: 'lobby',
       hostSeat: 's0',
       seats: SEATS.map((s) => this.emptySeat(s)),
-      settings: { minigameEvery: settings?.minigameEvery ?? RULESET.minigameEveryRoundsDefault, debugBots: !!settings?.debugBots && this.config.devMode, bots: !!settings?.bots },
+      settings: this.cleanSettings(settings),
       match: null,
       matchCount: 0,
       rematchVotes: [],
@@ -258,11 +260,32 @@ export class RoomService {
     return seat.appearance ?? defaultAppearance(rec.seats.indexOf(seat));
   }
 
+  /** Reaction in a running match; returns where to show it (null = dropped by cooldown). */
+  emote(guestId: string): { roomId: string; seat: SeatId; at: number } | null {
+    const rt = this.roomOfGuest(guestId);
+    if (!rt || rt.rec.status !== 'playing') throw new ServiceError('notInMatch');
+    const seat = this.seatOf(rt.rec, guestId)!;
+    const now = this.clock.now();
+    if (now - (this.lastEmote.get(guestId) ?? -Infinity) < EMOTE_COOLDOWN_MS) return null;
+    this.lastEmote.set(guestId, now);
+    return { roomId: rt.rec.roomId, seat: seat.seat, at: now };
+  }
+
+  private cleanSettings(settings?: RoomSettings): RoomSettings {
+    return {
+      minigameEvery: settings?.minigameEvery ?? RULESET.minigameEveryRoundsDefault,
+      debugBots: !!settings?.debugBots && this.config.devMode,
+      bots: !!settings?.bots,
+      map: settings?.map ?? 'random',
+      length: settings?.length ?? 'normal',
+    };
+  }
+
   setSettings(guestId: string, settings: RoomSettings): void {
     const { rt, seat } = this.requireLobbySeat(guestId);
     if (rt.rec.status !== 'lobby') throw new ServiceError('notLobby');
     if (rt.rec.hostSeat !== seat.seat) throw new ServiceError('notHost');
-    rt.rec.settings = { minigameEvery: settings.minigameEvery, debugBots: !!settings.debugBots && this.config.devMode, bots: !!settings.bots };
+    rt.rec.settings = this.cleanSettings(settings);
     for (const s of rt.rec.seats) s.ready = false;
     this.commit(rt);
   }
@@ -299,7 +322,13 @@ export class RoomService {
       matchId: `${rec.roomId.slice(0, 8)}-${rec.matchCount}`,
       seed: crypto.randomInt(0, 2 ** 31),
       seats: seats.map((s) => ({ seat: s.seat, name: s.name, avatar: s.avatar, appearance: this.seatLook(rec, s) })),
-      settings: { minigameEvery: rec.settings.minigameEvery, debug: seats.length !== RULESET.seats || seats.some((s) => s.isBot) },
+      settings: {
+        minigameEvery: rec.settings.minigameEvery,
+        debug: seats.length !== RULESET.seats || seats.some((s) => s.isBot),
+        // «Random» is resolved here, once per match (rematches roll again).
+        mapId: !rec.settings.map || rec.settings.map === 'random' ? MAPS[crypto.randomInt(0, MAPS.length)]!.id : getMap(rec.settings.map).id,
+        ...(rec.settings.length === 'quick' ? { maxRounds: RULESET.quick.maxRounds, startCash: RULESET.quick.startCash, dealTiles: RULESET.quick.dealTiles } : {}),
+      },
       now: this.clock.now(),
     });
     rec.status = 'playing';

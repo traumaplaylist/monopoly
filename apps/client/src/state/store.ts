@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { PublicMatch, SeatId } from '@pb/game-core';
 import type { RoomPublic, Snapshot } from '@pb/protocol';
+import type { Emote } from '@pb/content';
 import { storage } from '../net/util';
 import type { Prefs } from '../net/util';
 
@@ -26,6 +27,15 @@ export interface Fx {
   start: number;
 }
 
+/** A reaction bubble over a player (from the server's room:emoteShow). */
+export interface EmoteFx {
+  id: number;
+  seat: SeatId;
+  emote: Emote;
+  /** performance.now() */
+  start: number;
+}
+
 export interface MoveAnim {
   seat: SeatId;
   from: number;
@@ -47,6 +57,7 @@ interface UiState {
   lastSeq: number;
   moves: MoveAnim[];
   fx: Fx[];
+  emotes: EmoteFx[];
   rollSeq: number;
   selectedTile: number | null;
   sheet: Sheet;
@@ -75,6 +86,7 @@ export const useStore = create<UiState>(() => ({
   lastSeq: 0,
   moves: [],
   fx: [],
+  emotes: [],
   rollSeq: 0,
   selectedTile: null,
   sheet: null,

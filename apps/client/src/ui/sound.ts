@@ -39,7 +39,7 @@ function applyVolumes() {
 
 export type Sound =
   | 'dice' | 'coin' | 'error' | 'turn' | 'tap' | 'win' | 'step' | 'receive' | 'pay' | 'buy' | 'upgrade'
-  | 'gavel' | 'card' | 'event' | 'minigame';
+  | 'gavel' | 'card' | 'event' | 'minigame' | 'pop' | 'roulette';
 
 /** One tone with an attack/decay envelope. */
 function tone(f: number, at: number, dur: number, type: OscillatorType, gain: number, bus: AudioNode, slideTo?: number) {
@@ -132,6 +132,13 @@ export function playSound(name: Sound): void {
       break;
     case 'tap':
       tone(880, t, 0.05, 'triangle', 0.08, b);
+      break;
+    case 'pop':
+      tone(520, t, 0.12, 'sine', 0.14, b, 1100);
+      noise(t, 0.04, 0.12, 2500, b, 2);
+      break;
+    case 'roulette':
+      for (let i = 0; i < 12; i++) tone(700 + (i % 3) * 120, t + i * 0.11 * (1 + i * 0.06), 0.04, 'square', 0.04, b);
       break;
     case 'error':
       tone(220, t, 0.18, 'sawtooth', 0.06, b, 150);

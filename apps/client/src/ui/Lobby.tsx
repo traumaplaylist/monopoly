@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RULESET } from '@pb/content';
+import { MAPS, RULESET } from '@pb/content';
 import type { RoomSettings } from '@pb/protocol';
 import { api } from '../net/connection';
 import { toast, useStore } from '../state/store';
@@ -8,6 +8,7 @@ import { useRestoreAppearance } from './Wardrobe';
 import { set as setUi } from '../state/store';
 
 const SEAT_COLORS = ['#e2574c', '#2a9d9a', '#e8a33a', '#8a52c9'];
+const MAP_ICON: Record<string, string> = { random: 'dice', world: 'plane', russia: 'dolls', space: 'saturn' };
 
 export function Lobby() {
   const room = useStore((s) => s.room)!;
@@ -19,6 +20,7 @@ export function Lobby() {
   const allOnline = humans.every((s) => s.connected);
   const debug = !!room.settings.bots || (!!room.settings.debugBots && room.devMode);
   const [copied, setCopied] = useState(false);
+  const quick = room.settings.length === 'quick';
 
   const startReason = !isHost
     ? 'Начать игру может хозяин комнаты'
@@ -93,6 +95,37 @@ export function Lobby() {
         )}
 
         <div className="section">
+          <div className="muted">Карта {isHost ? '' : '(выбирает хозяин)'}</div>
+          <div className="map-pick" data-testid="map-pick">
+            {[{ id: 'random', name: 'Случайная', tagline: 'выпадет при старте' }, ...MAPS].map((mp) => (
+              <button
+                key={mp.id}
+                className={`map-opt map-${mp.id} ${(room.settings.map ?? 'random') === mp.id ? 'on' : ''}`}
+                disabled={!isHost}
+                onClick={() => setSettings({ map: mp.id })}
+                data-testid={`map-${mp.id}`}
+              >
+                <img src={`icons/fluent/${MAP_ICON[mp.id] ?? 'dice'}.png`} alt="" />
+                <b>{mp.name}</b>
+                <small>{mp.tagline}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="section">
+          <div className="muted">Длина партии</div>
+          <div className="seg">
+            <button className={room.settings.length !== 'quick' ? 'on' : ''} disabled={!isHost} onClick={() => setSettings({ length: 'normal' })} data-testid="length-normal">
+              Обычная · {RULESET.maxRounds} раундов
+            </button>
+            <button className={room.settings.length === 'quick' ? 'on' : ''} disabled={!isHost} onClick={() => setSettings({ length: 'quick' })} data-testid="length-quick">
+              ⚡ Быстрая · {RULESET.quick.maxRounds} раундов
+            </button>
+          </div>
+        </div>
+
+        <div className="section">
           <div className="muted">Общая мини-игра {isHost ? '' : '(настраивает хозяин)'}</div>
           <div className="seg">
             {([1, 2, 3] as const).map((n) => (
@@ -106,7 +139,9 @@ export function Lobby() {
             <span>🤖 Добавить ботов на свободные места (можно играть вдвоём или втроём)</span>
           </label>
           <p className="hint">Если кто-то выйдет из партии или пропадёт со связью больше чем на 45 с, за него сыграет бот, пока он не вернётся.</p>
-          <p className="hint">Партия: {RULESET.maxRounds} раундов, старт {RULESET.startCash} монет, 3 жетона дуэли, щит у каждого.</p>
+          <p className="hint">
+            Партия: {quick ? RULESET.quick.maxRounds : RULESET.maxRounds} раундов (~{quick ? '20–25' : '40–50'} мин), старт {quick ? RULESET.quick.startCash : RULESET.startCash} монет{quick ? ` и по ${RULESET.quick.dealTiles} случайных объекта` : ''}, 3 жетона дуэли, щит у каждого.
+          </p>
         </div>
 
         <div className="lobby-actions">

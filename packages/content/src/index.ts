@@ -5,3 +5,5 @@ export * from './geo';
 export * from './appearance';
 export * from './characterCatalog';
 export * from './events';
+export * from './maps';
+export * from './emotes';

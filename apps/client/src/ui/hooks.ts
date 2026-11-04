@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { WORLD, RULESET } from '@pb/content';
+import { RULESET } from '@pb/content';
 import { actingSeats, currentSeat as coreCurrentSeat } from '@pb/game-core';
 import type { MatchState, PublicMatch, PublicPlayer } from '@pb/game-core';
 import { serverNow, useStore } from '../state/store';
+import { mapNow } from './mapNow';
 
 /** Server-synchronised clock that re-renders every 250 ms. */
 export function useNow(active = true): number {
@@ -40,7 +41,7 @@ export function isMyTurn(m: PublicMatch, seat: string | null): boolean {
 }
 
 export function tileDef(i: number) {
-  return WORLD.tiles[i]!;
+  return mapNow().tiles[i]!;
 }
 
 export { RULESET };

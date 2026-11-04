@@ -3,7 +3,7 @@
 // bold condensed type; special tiles are cream cards with a coloured badge. PNG icons from
 // assets.json replace the emoji placeholders.
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
-import { GROUPS, WORLD } from '@pb/content';
+import { GROUPS } from '@pb/content';
 import type { TileDef } from '@pb/content';
 
 export const UI_FONT = 'Nunito, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
@@ -329,8 +329,8 @@ function priceTag(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: n
 }
 
 /** Card face texture; w/d are the card's world size. `img` is the icon (artist PNG or Lucide SVG). */
-export function createTileTexture(index: number, w: number, d: number, corner: boolean, img: HTMLImageElement | null): CanvasTexture {
-  const t = WORLD.tiles[index]!;
+export function createTileTexture(t: TileDef, w: number, d: number, corner: boolean, img: HTMLImageElement | null): CanvasTexture {
+  const index = t.index;
   const W = Math.round(w * PX);
   const H = Math.round(d * PX);
   const [c, ctx] = canvas(W, H);
@@ -389,10 +389,16 @@ export function createTileTexture(index: number, w: number, d: number, corner: b
 // ------------------------------------------------------------------ board & table
 
 
-/** Board centre: pale city map. */
-export function createPaperTexture(w: number, h: number, title: string): CanvasTexture {
+/** Board centre artwork by map theme. */
+export function createPaperTexture(w: number, h: number, kind: 'city' | 'taiga' | 'space' = 'city'): CanvasTexture {
+  if (kind === 'space') return spacePaper(w, h);
+  if (kind === 'taiga') return taigaPaper(w, h);
+  return cityPaper(w, h);
+}
+
+/** «Вокруг света»: pale city map. */
+function cityPaper(w: number, h: number): CanvasTexture {
   // Variant 1: calm pale city map — blocks, streets and a river — inside the tile ring.
-  void title;
   const P = 110;
   const W = Math.round(w * P);
   const H = Math.round(h * P);
@@ -442,6 +448,109 @@ export function createPaperTexture(w: number, h: number, title: string): CanvasT
   return finish(c);
 }
 
+
+
+/** «По России»: snowy-green map with forests, rivers, lakes and a railway. */
+function taigaPaper(w: number, h: number): CanvasTexture {
+  const P = 110;
+  const W = Math.round(w * P);
+  const H = Math.round(h * P);
+  const [c, ctx] = canvas(W, H);
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, '#eef4ea');
+  g.addColorStop(1, '#e3eddc');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  const rnd = rng(41);
+  // Forest patches.
+  for (let k = 0; k < 26; k++) {
+    const x = rnd() * W;
+    const y = rnd() * H;
+    const r = P * (0.5 + rnd() * 1.1);
+    for (let j = 0; j < 22; j++) {
+      ctx.fillStyle = `rgba(${90 + rnd() * 40},${150 + rnd() * 40},${100 + rnd() * 30},0.32)`;
+      ctx.beginPath();
+      ctx.arc(x + (rnd() - 0.5) * r * 2, y + (rnd() - 0.5) * r, P * (0.12 + rnd() * 0.12), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // Lakes.
+  for (let k = 0; k < 4; k++) {
+    ctx.fillStyle = 'rgba(140,195,230,0.6)';
+    ctx.beginPath();
+    ctx.ellipse(rnd() * W, rnd() * H, P * (0.35 + rnd() * 0.5), P * (0.18 + rnd() * 0.25), rnd() * 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Two rivers.
+  ctx.strokeStyle = 'rgba(140,195,230,0.75)';
+  ctx.lineCap = 'round';
+  for (const [y0, y1, lw] of [[0.25, 0.4, 0.26], [0.85, 0.65, 0.2]] as const) {
+    ctx.lineWidth = P * lw;
+    ctx.beginPath();
+    ctx.moveTo(-30, H * y0);
+    ctx.bezierCurveTo(W * 0.35, H * (y0 + 0.15), W * 0.6, H * (y1 - 0.15), W + 30, H * y1);
+    ctx.stroke();
+  }
+  // Railway: grey line with sleepers.
+  ctx.strokeStyle = 'rgba(120,110,100,0.55)';
+  ctx.lineWidth = P * 0.05;
+  ctx.beginPath();
+  ctx.moveTo(-20, H * 0.55);
+  ctx.bezierCurveTo(W * 0.3, H * 0.45, W * 0.7, H * 0.62, W + 20, H * 0.5);
+  ctx.stroke();
+  ctx.setLineDash([P * 0.04, P * 0.12]);
+  ctx.lineWidth = P * 0.14;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Snow speckles.
+  for (let k = 0; k < W * H * 0.0015; k++) {
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillRect(rnd() * W, rnd() * H, 2, 2);
+  }
+  return finish(c);
+}
+
+/** «Космос»: deep blue sky with nebulae, orbits and stars. */
+function spacePaper(w: number, h: number): CanvasTexture {
+  const P = 110;
+  const W = Math.round(w * P);
+  const H = Math.round(h * P);
+  const [c, ctx] = canvas(W, H);
+  ctx.fillStyle = '#1b1d4a';
+  ctx.fillRect(0, 0, W, H);
+  const rnd = rng(77);
+  // Nebulae.
+  for (const [x, y, r, col] of [[0.25, 0.3, 0.45, '255,90,170'], [0.75, 0.65, 0.5, '80,170,255'], [0.55, 0.15, 0.3, '160,110,255'], [0.15, 0.85, 0.3, '60,220,200']] as const) {
+    const gr = ctx.createRadialGradient(W * x, H * y, 0, W * x, H * y, Math.max(W, H) * r);
+    gr.addColorStop(0, `rgba(${col},0.35)`);
+    gr.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = gr;
+    ctx.fillRect(0, 0, W, H);
+  }
+  // Orbits around a little sun.
+  const cx = W * 0.5;
+  const cy = H * 0.5;
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 2;
+  for (let k = 1; k <= 5; k++) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, W * 0.09 * k, H * 0.07 * k, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // Stars.
+  for (let k = 0; k < W * H * 0.0012; k++) {
+    const a = 0.3 + rnd() * 0.7;
+    ctx.fillStyle = `rgba(255,255,${200 + Math.floor(rnd() * 55)},${a})`;
+    const s = rnd() > 0.96 ? 3 : rnd() > 0.7 ? 2 : 1;
+    ctx.fillRect(rnd() * W, rnd() * H, s, s);
+  }
+  for (let k = 0; k < 14; k++) {
+    ctx.fillStyle = 'rgba(255,250,220,0.9)';
+    star(ctx, rnd() * W, rnd() * H, 4 + rnd() * 5, 4);
+    ctx.fill();
+  }
+  return finish(c);
+}
 
 // ------------------------------------------------------------------ decks, money, cards
 

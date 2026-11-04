@@ -2,7 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from 'three';
 import type { Group, Texture } from 'three';
-import { WORLD } from '@pb/content';
+import type { MapDef } from '@pb/content';
+import { useMapDef } from '../ui/mapNow';
 import { useStore } from '../state/store';
 import { onTileClick } from '../ui/actions';
 import { loadImage, useManifest } from './assets';
@@ -26,33 +27,36 @@ const CARD_GAP = 0.07;
 const TABLE_Y = -PLATE_THICKNESS - 0.06;
 
 export function Board({ profile }: { profile: Profile }) {
+  const map = useMapDef();
   return (
     <group>
-      <Table />
-      <Plate profile={profile} />
-      <Tiles profile={profile} />
+      <Table map={map} />
+      <Plate profile={profile} map={map} />
+      <Tiles profile={profile} map={map} />
       <Decks profile={profile} />
-      <CenterDecor profile={profile} />
+      <CenterDecor profile={profile} map={map} />
     </group>
   );
 }
 
 /** Dark plum backdrop (variant 1 of the reference): a soft radial glow under the board. */
-function Table() {
+function Table({ map }: { map: MapDef }) {
+  const [c0, c1, c2] = map.theme.bg;
   const tex = useMemo(() => {
     const c = document.createElement('canvas');
     c.width = c.height = 512;
     const ctx = c.getContext('2d')!;
     const g = ctx.createRadialGradient(256, 256, 30, 256, 256, 256);
-    g.addColorStop(0, '#4a3f86');
-    g.addColorStop(0.55, '#332a66');
-    g.addColorStop(1, '#221c47');
+    g.addColorStop(0, c0);
+    g.addColorStop(0.55, c1);
+    g.addColorStop(1, c2);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 512, 512);
     const t = new CanvasTexture(c);
     t.colorSpace = SRGBColorSpace;
     return t;
-  }, []);
+  }, [c0, c1, c2]);
+  useEffect(() => () => tex.dispose(), [tex]);
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, TABLE_Y, 0]} receiveShadow raycast={() => null}>
       <planeGeometry args={[60, 60]} />
@@ -70,10 +74,11 @@ function Frame({ w, d }: { w: number; d: number }) {
   );
 }
 
-function Plate({ profile }: { profile: Profile }) {
+function Plate({ profile, map }: { profile: Profile; map: MapDef }) {
   const w = profile.width + PLATE_MARGIN * 2;
   const d = profile.height + PLATE_MARGIN * 2;
-  const paper = useMemo(() => createPaperTexture(w, d, WORLD.name.toUpperCase()), [w, d]);
+  const kind = map.theme.paper;
+  const paper = useMemo(() => createPaperTexture(w, d, kind), [w, d, kind]);
   useEffect(() => () => paper.dispose(), [paper]);
   return (
     <group>
@@ -85,43 +90,44 @@ function Plate({ profile }: { profile: Profile }) {
   );
 }
 
-function useTileTextures(profile: Profile): Texture[] | null {
+function useTileTextures(profile: Profile, map: MapDef): Texture[] | null {
   const manifest = useManifest();
   const [textures, setTextures] = useState<Texture[] | null>(null);
   useEffect(() => {
     let alive = true;
-    const icon = (t: (typeof WORLD.tiles)[number]) =>
-      manifest.icons[t.index] ? loadImage(manifest.icons[t.index]!) : iconImage(t.visual, iconColor(t));
-    void Promise.all(WORLD.tiles.map(icon)).then((imgs) => {
+    // Artist icons in assets.json are drawn for «Вокруг света» tiles only.
+    const icon = (t: MapDef['tiles'][number]) =>
+      map.id === 'world' && manifest.icons[t.index] ? loadImage(manifest.icons[t.index]!) : iconImage(t.visual, iconColor(t));
+    void Promise.all(map.tiles.map(icon)).then((imgs) => {
       if (!alive) return;
       setTextures(
-        WORLD.tiles.map((t, i) => {
+        map.tiles.map((t, i) => {
           const r = tileRect(t.index, profile);
-          return createTileTexture(t.index, r.w - CARD_GAP, r.d - CARD_GAP, r.corner, imgs[i] ?? null);
+          return createTileTexture(t, r.w - CARD_GAP, r.d - CARD_GAP, r.corner, imgs[i] ?? null);
         }),
       );
     });
     return () => {
       alive = false;
     };
-  }, [manifest, profile]);
+  }, [manifest, profile, map]);
   useEffect(() => () => textures?.forEach((t) => t.dispose()), [textures]);
   return textures;
 }
 
-function Tiles({ profile }: { profile: Profile }) {
-  const textures = useTileTextures(profile);
+function Tiles({ profile, map }: { profile: Profile; map: MapDef }) {
+  const textures = useTileTextures(profile, map);
   if (!textures) return null;
   return (
     <group>
-      {WORLD.tiles.map((t) => (
-        <TileCard key={t.index} index={t.index} texture={textures[t.index]!} profile={profile} />
+      {map.tiles.map((t) => (
+        <TileCard key={t.index} index={t.index} texture={textures[t.index]!} profile={profile} edge={cardEdgeColor(t)} />
       ))}
     </group>
   );
 }
 
-function TileCard({ index, texture, profile }: { index: number; texture: Texture; profile: Profile }) {
+function TileCard({ index, texture, profile, edge }: { index: number; texture: Texture; profile: Profile; edge: string }) {
   const r = tileRect(index, profile);
   const ref = useRef<Group>(null);
   const [hover, setHover] = useState(false);
@@ -135,9 +141,9 @@ function TileCard({ index, texture, profile }: { index: number; texture: Texture
   const material = useMemo(
     () => [
       new MeshStandardMaterial({ map: texture, roughness: 0.42, metalness: 0 }),
-      new MeshStandardMaterial({ color: cardEdgeColor(WORLD.tiles[index]!), roughness: 0.5 }),
+      new MeshStandardMaterial({ color: edge, roughness: 0.5 }),
     ],
-    [texture, index],
+    [texture, edge],
   );
   useEffect(() => () => material.forEach((m) => m.dispose()), [material]);
 
@@ -269,7 +275,8 @@ function Decks({ profile }: { profile: Profile }) {
 }
 
 /** Low-poly trees and loose crystals scattered on the city map (variant 1 of the reference). */
-function CenterDecor({ profile }: { profile: Profile }) {
+function CenterDecor({ profile, map }: { profile: Profile; map: MapDef }) {
+  const decor = map.theme.decor;
   const items = useMemo(() => {
     const inner = { w: profile.width - profile.cw * 2, h: profile.height - profile.cd * 2 };
     const c = centerLayout(profile);
@@ -280,7 +287,7 @@ function CenterDecor({ profile }: { profile: Profile }) {
     ];
     let seed = 7;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const res: { x: number; z: number; kind: 'tree' | 'gem'; s: number; color: string }[] = [];
+    const res: { x: number; z: number; kind: 'tree' | 'spruce' | 'rock' | 'gem'; s: number; color: string }[] = [];
     const gems = ['#f23d5c', '#2f7ff0', '#ffc21a', '#58c22c', '#8b55e6'];
     const want = profile.id === 'portrait' ? 12 : 16;
     for (let k = 0; res.length < want && k < 600; k++) {
@@ -288,15 +295,38 @@ function CenterDecor({ profile }: { profile: Profile }) {
       const z = (rnd() - 0.5) * (inner.h - 0.7);
       if (keepOut.some((o) => Math.abs(x - o.x) < o.w && Math.abs(z - o.z) < o.d)) continue;
       if (res.some((r) => Math.hypot(r.x - x, r.z - z) < 0.9)) continue;
-      const gem = rnd() < 0.35;
-      res.push({ x, z, kind: gem ? 'gem' : 'tree', s: 1.15 + rnd() * 0.5, color: gem ? gems[Math.floor(rnd() * gems.length)]! : rnd() > 0.5 ? '#5cbf4a' : '#3fa45a' });
+      const gem = rnd() < (decor === 'asteroids' ? 0.3 : 0.35);
+      const plant = decor === 'asteroids' ? 'rock' : decor === 'spruce' ? 'spruce' : 'tree';
+      const green = decor === 'spruce' ? (rnd() > 0.5 ? '#2f8a57' : '#3a9e64') : rnd() > 0.5 ? '#5cbf4a' : '#3fa45a';
+      const rock = rnd() > 0.5 ? '#8a86a8' : '#a39fbe';
+      res.push({ x, z, kind: gem ? 'gem' : plant, s: 1.15 + rnd() * 0.5, color: gem ? gems[Math.floor(rnd() * gems.length)]! : plant === 'rock' ? rock : green });
     }
     return res;
-  }, [profile]);
+  }, [profile, decor]);
   return (
     <group>
       {items.map((it, k) =>
-        it.kind === 'tree' ? (
+        it.kind === 'spruce' ? (
+          <group key={k} position={[it.x, 0, it.z]} scale={it.s} rotation={[0, k, 0]}>
+            <mesh position={[0, 0.05, 0]} castShadow raycast={() => null}>
+              <cylinderGeometry args={[0.035, 0.045, 0.1, 6]} />
+              <meshStandardMaterial color="#7a4e2c" flatShading />
+            </mesh>
+            <mesh position={[0, 0.22, 0]} castShadow raycast={() => null}>
+              <coneGeometry args={[0.2, 0.28, 7]} />
+              <meshStandardMaterial color={it.color} flatShading roughness={0.6} />
+            </mesh>
+            <mesh position={[0, 0.4, 0]} castShadow raycast={() => null}>
+              <coneGeometry args={[0.14, 0.24, 7]} />
+              <meshStandardMaterial color={it.color} flatShading roughness={0.6} />
+            </mesh>
+          </group>
+        ) : it.kind === 'rock' ? (
+          <mesh key={k} position={[it.x, 0.12 * it.s, it.z]} scale={[it.s * 0.22, it.s * 0.16, it.s * 0.19]} rotation={[k, k * 2, 0]} castShadow raycast={() => null}>
+            <dodecahedronGeometry args={[1, 0]} />
+            <meshStandardMaterial color={it.color} flatShading roughness={0.85} />
+          </mesh>
+        ) : it.kind === 'tree' ? (
           <group key={k} position={[it.x, 0, it.z]} scale={it.s} rotation={[0, k, 0]}>
             <mesh position={[0, 0.06, 0]} castShadow raycast={() => null}>
               <cylinderGeometry args={[0.04, 0.05, 0.12, 6]} />

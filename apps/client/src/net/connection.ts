@@ -1,9 +1,9 @@
-import type { Appearance } from '@pb/content';
+import type { Appearance, Emote } from '@pb/content';
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import type { Command } from '@pb/game-core';
 import { EV, PROTOCOL_VERSION } from '@pb/protocol';
-import type { CommandAck, RoomSettings, Snapshot } from '@pb/protocol';
+import type { CommandAck, EmoteShow, RoomSettings, Snapshot } from '@pb/protocol';
 import { applySnapshot, get, set, toast } from '../state/store';
 import { errorText } from '../ui/format';
 import { playSound } from '../ui/sound';
@@ -26,6 +26,12 @@ export function connect(): void {
   socket.on('disconnect', () => set({ conn: get().conn === 'replaced' ? 'replaced' : 'offline' }));
   socket.on('connect_error', () => set({ conn: 'offline' }));
   socket.on(EV.snapshot, (snap: Snapshot) => applySnapshot(snap));
+  let emoteId = 0;
+  socket.on(EV.emoteShow, (e: EmoteShow) => {
+    const now = performance.now();
+    set({ emotes: [...get().emotes.filter((x) => now - x.start < 3000 && x.seat !== e.seat), { id: ++emoteId, seat: e.seat, emote: e.emote, start: now }] });
+    playSound('pop');
+  });
   socket.on(EV.replaced, () => {
     set({ conn: 'replaced' });
     socket?.io.opts && (socket.io.opts.reconnection = false);
@@ -119,6 +125,8 @@ export const api = {
   appearance: async (appearance: Appearance) => report(await emit(EV.appearance, { appearance })),
   settings: async (s: RoomSettings) => report(await emit(EV.settings, s)),
   start: async () => report(await emit(EV.start)),
+  /** Reaction; failures are silent (cooldown, match over). */
+  emote: async (emote: Emote) => void (await emit(EV.emote, { emote })),
   leave: async () => report(await emit(EV.leave)),
   rematch: async () => report(await emit(EV.rematch)),
   /** Dev-mode-only QA shortcuts (server rejects them in production). */

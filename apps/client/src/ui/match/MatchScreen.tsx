@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { GROUPS, WORLD, WORLD_EVENTS } from '@pb/content';
+import { WORLD_EVENTS } from '@pb/content';
 import { worldEventText } from '../format';
 import { Scene } from '../../render/Scene';
 import { setCanvasElement, setStageElement } from '../../render/stage';
@@ -13,6 +13,10 @@ import { Banner } from './Banner';
 import { ChanceCardPopup, FinishedOverlay, GhostNotice, PendingItemModal, WorldEventPopup } from './Overlays';
 import { PlayerCards } from './PlayerCards';
 import { Prompt } from './Prompt';
+import { EmoteBar } from './Emotes';
+import { MapReveal } from './MapReveal';
+import { mapNow } from '../mapNow';
+import { groupName } from '../format';
 
 /** Current world event as a chip in the top bar (full text in the tooltip). */
 function EventChip() {
@@ -23,7 +27,7 @@ function EventChip() {
   return (
     <div className="badge-event" title={worldEventText(e.kind, e.group)} data-testid="event-chip">
       {d.icon} {d.title}
-      {e.group ? ` · ${GROUPS[e.group].name}` : ''}
+      {e.group ? ` · ${groupName(e.group)}` : ''}
     </div>
   );
 }
@@ -34,7 +38,7 @@ function TopBar() {
   return (
     <header className="topbar">
       <div className="badge-title">
-        <span className="logo-mark">◆</span> {WORLD.name.toUpperCase()}
+        <span className="logo-mark">◆</span> {mapNow().name.toUpperCase()}
       </div>
       <EventChip />
       <div className="badge-round" data-testid="round">
@@ -66,6 +70,7 @@ export function MatchScreen() {
       <TopBar />
       <aside className="side">
         <PlayerCards />
+        <EmoteBar />
         <div className="side-tile">
           <TileSummary />
         </div>
@@ -82,6 +87,7 @@ export function MatchScreen() {
       <PendingItemModal />
       <GhostNotice />
       <FinishedOverlay />
+      <MapReveal />
     </div>
   );
 }

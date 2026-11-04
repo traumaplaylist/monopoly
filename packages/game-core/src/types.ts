@@ -249,6 +249,12 @@ export interface FinalStanding {
 export interface MatchSettings {
   minigameEvery: 1 | 2 | 3;
   maxRounds: number;
+  /** Board (content `getMap`); absent in matches saved before maps existed = «world». */
+  mapId?: string;
+  /** Starting cash (absent = RULESET.startCash). */
+  startCash?: number;
+  /** Random cities dealt to every player at the start (quick match). */
+  dealTiles?: number;
   /** Debug match (fewer seats, bots). Never on in production. */
   debug: boolean;
 }

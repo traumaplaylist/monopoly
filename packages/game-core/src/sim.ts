@@ -3,14 +3,14 @@ import { GROUP_ORDER, groupTiles } from '@pb/content';
 import { botCommand } from './bot';
 import { advance, applyCommand, createMatch, nextDeadline } from './engine';
 import { MAP } from './rules';
-import type { MatchState } from './types';
+import type { MatchSettings, MatchState } from './types';
 
-export function simulate(seed: number, seats = 4): { s: MatchState; steps: number } {
+export function simulate(seed: number, seats = 4, extra: Partial<MatchSettings> = {}): { s: MatchState; steps: number } {
   let s = createMatch({
     matchId: `sim${seed}`,
     seed,
     seats: Array.from({ length: seats }, (_, i) => ({ seat: `s${i}`, name: `B${i}`, avatar: i })),
-    settings: { minigameEvery: 2, debug: seats !== 4 },
+    settings: { minigameEvery: 2, debug: seats !== 4, ...extra },
     now: 0,
   });
   let now = 0;
@@ -55,10 +55,10 @@ export interface BalanceStats {
 }
 
 /** Aggregated statistics of `games` bot matches (seeds 1..games). */
-export function balanceStats(games: number): BalanceStats {
+export function balanceStats(games: number, extra: Partial<MatchSettings> = {}): BalanceStats {
   let bankrupt = 0, withB = 0, sets = 0, levels = 0, owned = 0, trades = 0, cash = 0, lead = 0, ms = 0;
   for (let seed = 1; seed <= games; seed++) {
-    const { s } = simulate(seed);
+    const { s } = simulate(seed, 4, extra);
     const ghosts = s.players.filter((p) => p.role === 'ghost').length;
     bankrupt += ghosts;
     if (ghosts) withB++;

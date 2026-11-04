@@ -7,6 +7,8 @@ export const RULESET = {
   seats: 4,
   startCash: 1200,
   maxRounds: 12,
+  /** «Быстрая партия» room option: fewer rounds; every player starts with `dealTiles` random cities. */
+  quick: { maxRounds: 7, startCash: 1200, dealTiles: 2 },
   startSalary: 150,
 
   // Upgrades: levels 0..3, rent multipliers replace the full-set x2.

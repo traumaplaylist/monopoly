@@ -43,7 +43,7 @@
 | Концепты `output/concepts/*.png` | присланы пользователем, только референсы, в сборку не входят | — |
 
 ## Иконки клеток (с 02.11.2026)
-По умолчанию — цветные 3D-иконки **Microsoft Fluent Emoji 3D** (MIT, © Microsoft; лицензия лежит рядом: `public/icons/fluent/LICENSE.txt`). Файл = `public/icons/fluent/<visual>.png`, где `visual` — ключ клетки из `packages/content/src/map.ts`; список подключённых ключей — `FLUENT` в `apps/client/src/render/icons.ts`. Свою иконку для конкретной клетки можно по-прежнему задать в `assets.json` → `icons` (по номеру клетки) — она главнее.
+По умолчанию — цветные 3D-иконки **Microsoft Fluent Emoji 3D** (MIT, © Microsoft; лицензия лежит рядом: `public/icons/fluent/LICENSE.txt`). Файл = `public/icons/fluent/<visual>.png`, где `visual` — ключ клетки из `packages/content/src/map.ts`; список подключённых ключей — `FLUENT` в `apps/client/src/render/icons.ts`. С 04.11.2026 добавлены иконки карт «По России» и «Космос» и 8 смайлов реакций (`emote-*.png`), тоже Fluent Emoji 3D, уменьшены до 256×256. Иконки из `assets.json` → `icons` применяются только к карте «Вокруг света» (номера клеток общие, а картинки — про её города). Свою иконку для конкретной клетки можно по-прежнему задать в `assets.json` → `icons` (по номеру клетки) — она главнее.
 
 ## Персонажи и гардероб (с 03.11.2026)
 - Модели: **Quaternius «Ultimate Modular Men/Women»** (CC0, лицензия — `apps/client/public/models/characters/LICENSE-Quaternius.txt`). Источник файлов — GLB-конверсия из публичного репозитория `LuanDucate/Ducz.CharacterCreator` (берём только модели с их исходной CC0; код того репозитория не используется).

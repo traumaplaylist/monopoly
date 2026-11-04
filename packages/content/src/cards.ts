@@ -39,8 +39,8 @@ export const CHANCE_CARDS: readonly ChanceCard[] = [
   { id: 'to-cairo', title: 'Тур к пирамидам', text: 'Отправляйтесь в Каир. Если пройдёте «Старт» — получите зарплату.', effect: { kind: 'moveTo', index: 1 } },
   { id: 'to-rome', title: 'Все дороги ведут…', text: '…в Рим. Если пройдёте «Старт» — получите зарплату.', effect: { kind: 'moveTo', index: 29 } },
   { id: 'to-auction', title: 'Аукцион редкостей', text: 'Идите на «Аукцион».', effect: { kind: 'moveTo', index: 10 } },
-  { id: 'to-airport', title: 'Пересадка', text: 'Идите вперёд до ближайшего аэропорта.', effect: { kind: 'moveToNearest', group: 'air' } },
-  { id: 'to-airport-2', title: 'Горящий билет', text: 'Идите вперёд до ближайшего аэропорта.', effect: { kind: 'moveToNearest', group: 'air' } },
+  { id: 'to-airport', title: 'Пересадка', text: 'Идите вперёд до ближайшего {hubGen}.', effect: { kind: 'moveToNearest', group: 'air' } },
+  { id: 'to-airport-2', title: 'Горящий билет', text: 'Идите вперёд до ближайшего {hubGen}.', effect: { kind: 'moveToNearest', group: 'air' } },
   { id: 'shortcut', title: 'Попутный ветер', text: 'Пройдите вперёд на 3 клетки.', effect: { kind: 'moveBy', steps: 3 } },
   { id: 'detour', title: 'Забыли зарядку', text: 'Вернитесь на 3 клетки назад.', effect: { kind: 'moveBy', steps: -3 } },
   // --- players
@@ -57,7 +57,7 @@ export const CHANCE_CARDS: readonly ChanceCard[] = [
   { id: 'item-cone', title: 'Дорожный конус', text: 'Получите конус-ловушку.', effect: { kind: 'item', item: 'cone' } },
   { id: 'item-discount-2', title: 'Карта лояльности отелей', text: 'Получите скидку на аренду.', effect: { kind: 'item', item: 'discount' } },
   { id: 'item-shield-2', title: 'Оберег из лавки', text: 'Получите щит.', effect: { kind: 'item', item: 'shield' } },
-  { id: 'item-ticket', title: 'Открытый билет', text: 'Получите билет: в свой ход перед броском можно улететь в любой аэропорт.', effect: { kind: 'item', item: 'ticket' } },
+  { id: 'item-ticket', title: 'Открытый билет', text: 'Получите билет: в свой ход перед броском можно отправиться в любой {hubAcc}.', effect: { kind: 'item', item: 'ticket' } },
   { id: 'item-ticket-2', title: 'Мили накопились', text: 'Получите билет на самолёт.', effect: { kind: 'item', item: 'ticket' } },
 ];
 
@@ -70,6 +70,6 @@ export const ITEM_INFO: Record<ItemKind, { name: string; description: string }> 
   cone: { name: 'Конус', description: 'Поставьте на обычную клетку: следующий соперник, вставший на неё, платит банку 30.' },
   ticket: {
     name: 'Билет',
-    description: 'В свой ход вместо броска кубиков перелетите в любой аэропорт (зарплата за «Старт», если пролетели через него).',
+    description: 'В свой ход вместо броска кубиков отправьтесь в любой {hubAcc} (зарплата за «Старт», если прошли через него).',
   },
 };
