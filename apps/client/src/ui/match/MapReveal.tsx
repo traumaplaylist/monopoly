@@ -11,7 +11,9 @@ const SPIN_MS = 1700;
 const HOLD_MS = 2300;
 
 /** matchId → reveal state; module-level so React StrictMode double effects do not restart it. */
-const runs = new Map<string, { elapsed: number; last: number; settledSound: boolean; closed: boolean }>();
+const runs = new Map<string, { elapsed: number; last: number; born: number; settledSound: boolean; closed: boolean }>();
+/** Hard wall-clock limit: on a slow device the frame-based timer must not keep the board covered. */
+const WALL_MAX_MS = 6000;
 /** Longest step counted per tick: time the page spent frozen (loading the 3D board) does not count. */
 const MAX_STEP = 100;
 
@@ -34,7 +36,7 @@ export function MapReveal() {
 
   if (matchId && round === 1 && !runs.has(matchId)) {
     const fresh = !seenBefore(matchId);
-    runs.set(matchId, { elapsed: 0, last: performance.now(), settledSound: !fresh, closed: !fresh });
+    runs.set(matchId, { elapsed: 0, last: performance.now(), born: performance.now(), settledSound: !fresh, closed: !fresh });
     if (fresh) playSound(random ? 'roulette' : 'event');
   }
   const run = matchId ? runs.get(matchId) : undefined;
@@ -42,6 +44,7 @@ export function MapReveal() {
     const now = performance.now();
     run.elapsed += Math.min(MAX_STEP, now - run.last);
     run.last = now;
+    if (now - run.born > WALL_MAX_MS) run.closed = true;
   }
   const elapsed = run ? run.elapsed : Infinity;
   const spinMs = random ? SPIN_MS : 0;
