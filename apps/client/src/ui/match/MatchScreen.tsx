@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { WORLD } from '@pb/content';
+import { GROUPS, WORLD, WORLD_EVENTS } from '@pb/content';
+import { worldEventText } from '../format';
 import { Scene } from '../../render/Scene';
 import { setCanvasElement, setStageElement } from '../../render/stage';
 import { useStore } from '../../state/store';
@@ -9,9 +10,23 @@ import { playSound } from '../sound';
 import { currentSeat, useMatch } from '../hooks';
 import { ActionBar, TileSummary } from './ActionBar';
 import { Banner } from './Banner';
-import { ChanceCardPopup, FinishedOverlay, GhostNotice, PendingItemModal } from './Overlays';
+import { ChanceCardPopup, FinishedOverlay, GhostNotice, PendingItemModal, WorldEventPopup } from './Overlays';
 import { PlayerCards } from './PlayerCards';
 import { Prompt } from './Prompt';
+
+/** Current world event as a chip in the top bar (full text in the tooltip). */
+function EventChip() {
+  const m = useMatch();
+  const e = m.worldEvent && m.worldEvent.round === m.round ? m.worldEvent : null;
+  const d = e ? WORLD_EVENTS.find((x) => x.kind === e.kind) : null;
+  if (!e || !d) return null;
+  return (
+    <div className="badge-event" title={worldEventText(e.kind, e.group)} data-testid="event-chip">
+      {d.icon} {d.title}
+      {e.group ? ` · ${GROUPS[e.group].name}` : ''}
+    </div>
+  );
+}
 
 function TopBar() {
   const m = useMatch();
@@ -21,6 +36,7 @@ function TopBar() {
       <div className="badge-title">
         <span className="logo-mark">◆</span> {WORLD.name.toUpperCase()}
       </div>
+      <EventChip />
       <div className="badge-round" data-testid="round">
         Раунд <b>{Math.min(m.round, m.settings.maxRounds)}</b> / {m.settings.maxRounds}
       </div>
@@ -58,6 +74,7 @@ export function MatchScreen() {
         <Banner />
         <Prompt />
         <ChanceCardPopup />
+        <WorldEventPopup />
       </main>
       <ActionBar />
       <Sheets />

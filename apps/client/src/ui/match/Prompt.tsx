@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { RULESET } from '@pb/content';
-import { available, raisableCash, rentFor } from '@pb/game-core';
+import { available, purchasePrice, raisableCash, rentFor } from '@pb/game-core';
 import type { MatchState, PublicMatch } from '@pb/game-core';
 import { send } from '../../net/connection';
 import { anchorRef } from '../../render/BoardAnchor';
@@ -97,21 +97,22 @@ export function Prompt() {
   } else if (m.phase === 'PURCHASE' && mine && m.purchaseTile !== null) {
     const t = tileDef(m.purchaseTile);
     const free = available(asState(m), me!);
+    const price = purchasePrice(asState(m), m.purchaseTile);
     body = (
       <div className="prompt">
         <div className="prompt-title">«{t.name}» свободна</div>
         <div className="muted">
-          Цена <Coins n={t.price!} />, {t.group === 'air' ? `аренда ${RULESET.airportRent.join(' / ')} по числу аэропортов` : `аренда ${money(t.baseRent!)}; 2 из 3 городов ×1,5, вся страна ×2`}
+          Цена <Coins n={price} />{price !== t.price ? ' (распродажа)' : ''}, {t.group === 'air' ? `аренда ${RULESET.airportRent.join(' / ')} по числу аэропортов` : `аренда ${money(t.baseRent!)}; 2 из 3 городов ×1,5, вся страна ×2`}
         </div>
         <div className="row">
-          <button className="btn primary" disabled={free < t.price!} onClick={() => send({ type: 'BUY' })} data-testid="buy">
+          <button className="btn primary" disabled={free < price} onClick={() => send({ type: 'BUY' })} data-testid="buy">
             Купить
           </button>
           <button className="btn" onClick={() => send({ type: 'DECLINE_BUY' })} data-testid="decline">
             На аукцион
           </button>
         </div>
-        {free < t.price! && <div className="hint warn">Не хватает денег — можно заложить объекты или отправить на аукцион.</div>}
+        {free < price && <div className="hint warn">Не хватает денег — можно заложить объекты или отправить на аукцион.</div>}
         <div className="hint">Решение через {secondsLeft(m.deadline, now)} с, иначе — аукцион.</div>
       </div>
     );

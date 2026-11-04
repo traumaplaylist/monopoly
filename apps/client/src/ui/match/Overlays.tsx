@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { CHANCE_CARDS, ITEM_INFO } from '@pb/content';
+import { CHANCE_CARDS, GROUPS, ITEM_INFO, WORLD_EVENTS } from '@pb/content';
+import type { GroupId } from '@pb/content';
 import type { ChanceEffect } from '@pb/content';
 import { api, reclaim, send } from '../../net/connection';
 import { set, useStore } from '../../state/store';
@@ -7,6 +8,28 @@ import { money, seatName } from '../format';
 import { useMatch, useMe } from '../hooks';
 import { Portrait } from '../Portrait';
 import { playSound } from '../sound';
+
+/** Card for the world event of the new round (shown for a few seconds). */
+export function WorldEventPopup() {
+  const card = useStore((s) => s.worldCard);
+  useEffect(() => {
+    if (!card) return;
+    playSound('turn');
+    const t = setTimeout(() => set({ worldCard: null }), 4500);
+    return () => clearTimeout(t);
+  }, [card]);
+  if (!card) return null;
+  const d = WORLD_EVENTS.find((x) => x.kind === card.kind);
+  if (!d) return null;
+  return (
+    <div className="chance-card world-card" onClick={() => set({ worldCard: null })} data-testid="world-card">
+      <div className="wc-icon">{d.icon}</div>
+      <div className="cc-deck">Раунд {card.round} · событие мира</div>
+      <div className="cc-title">{d.title}</div>
+      <div>{d.text.replace('{country}', card.group ? GROUPS[card.group as GroupId].name : '')}</div>
+    </div>
+  );
+}
 
 export function ChanceCardPopup() {
   const card = useStore((s) => s.chanceCard);

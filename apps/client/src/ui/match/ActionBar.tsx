@@ -1,3 +1,4 @@
+import { purchasePrice } from '@pb/game-core';
 import { useEffect } from 'react';
 import { GROUPS, ITEM_INFO, WORLD, RULESET, groupTiles } from '@pb/content';
 import type { ItemKind } from '@pb/content';
@@ -22,7 +23,7 @@ function usePrimary() {
   if (mine && m.phase === 'PRE_ROLL') return { label: 'Бросить кубики', cmd: { type: 'ROLL' }, testId: 'roll' } as const;
   if (mine && m.phase === 'POST_ROLL') return { label: 'Завершить ход', cmd: { type: 'END_TURN' }, testId: 'end-turn' } as const;
   if (mine && m.phase === 'PURCHASE' && m.purchaseTile !== null)
-    return { label: `Купить ${money(WORLD.tiles[m.purchaseTile]!.price!)}`, cmd: { type: 'BUY' }, testId: 'buy-main' } as const;
+    return { label: `Купить ${money(purchasePrice(m as unknown as MatchState, m.purchaseTile))}`, cmd: { type: 'BUY' }, testId: 'buy-main' } as const;
   if (m.phase === 'DEBT' && m.debt?.payer === me) return { label: `Оплатить ${money(m.debt.amount)}`, cmd: { type: 'PAY_DEBT' }, testId: 'pay' } as const;
   const who = seatName(m, currentSeat(m), me);
   return { label: m.phase === 'MINIGAME' ? 'Мини-игра' : m.phase === 'AUCTION' ? 'Идёт аукцион' : `Ходит ${who}…`, cmd: null, testId: 'wait' } as const;

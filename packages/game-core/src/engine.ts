@@ -1,6 +1,6 @@
 // Authoritative rules engine for ruleset V1.
 // (state, seat, command, serverNow) -> new state + events. Pure: no I/O, no real clock, seeded RNG inside state.
-import { CHANCE_CARDS, GROUPS, RULESET, RULES_VERSION, defaultAppearance, groupTiles, pct, sanitizeAppearance } from '@pb/content';
+import { CHANCE_CARDS, GROUPS, GROUP_ORDER, RULESET, RULES_VERSION, WORLD_EVENTS, WORLD_EVENT_NUMBERS, defaultAppearance, groupTiles, pct, sanitizeAppearance } from '@pb/content';
 import type { Appearance } from '@pb/content';
 import type { ItemKind } from '@pb/content';
 import { RuleError, commit, emit, ensure, makeCtx } from './ctx';
@@ -24,7 +24,11 @@ import {
   ownedTiles,
   ownsFullGroup,
   player,
+  purchasePrice,
   rentFor,
+  salaryNow,
+  taxNow,
+  upgradeCostNow,
   tileDef,
   unmortgageCost,
   upgradeCost,
@@ -40,6 +44,7 @@ import type {
   Result,
   SeatId,
   TradeSide,
+  WorldEventState,
 } from './types';
 import { SCHEMA_VERSION } from './types';
 
@@ -252,10 +257,11 @@ function handle(ctx: Ctx, seat: SeatId, cmd: Command): void {
     case 'BUY': {
       requireTurn(s, seat, ['PURCHASE']);
       const t = tileDef(s.purchaseTile!);
-      ensure(available(s, seat) >= t.price!, 'noCash');
-      transfer(ctx, seat, null, t.price!, 'purchase', t.index);
+      const price = purchasePrice(s, t.index);
+      ensure(available(s, seat) >= price, 'noCash');
+      transfer(ctx, seat, null, price, 'purchase', t.index);
       own(s, t.index).owner = seat;
-      emit(ctx, { t: 'bought', seat, tile: t.index, price: t.price! });
+      emit(ctx, { t: 'bought', seat, tile: t.index, price });
       s.purchaseTile = null;
       return proceed(ctx);
     }
@@ -501,7 +507,7 @@ function moveBy(ctx: Ctx, p: PlayerState, steps: number): void {
   p.position = to;
   emit(ctx, { t: 'moved', seat: p.seat, from, to, steps, direct: false });
   // Salary exactly once per crossing (landing on Start counts as crossing).
-  if (steps > 0 && raw >= BOARD_SIZE) transfer(ctx, null, p.seat, RULESET.startSalary, 'salary');
+  if (steps > 0 && raw >= BOARD_SIZE) transfer(ctx, null, p.seat, salaryNow(ctx.s), 'salary');
   landOn(ctx, p, 0);
 }
 
@@ -535,7 +541,8 @@ function landOn(ctx: Ctx, p: PlayerState, depth: number): void {
       return;
     }
     case 'tax':
-      s.pending.push({ payer: p.seat, payee: null, amount: t.tax!, reason: 'tax', tile: idx });
+      const tax = taxNow(s, idx);
+      if (tax > 0) s.pending.push({ payer: p.seat, payee: null, amount: tax, reason: 'tax', tile: idx });
       return;
     case 'chance':
       if (depth < 2) drawChance(ctx, p, depth);
@@ -573,7 +580,7 @@ function drawChance(ctx: Ctx, p: PlayerState, depth: number): void {
       const raw = from + steps;
       p.position = e.index;
       emit(ctx, { t: 'moved', seat: p.seat, from, to: e.index, steps, direct: false });
-      if (raw >= BOARD_SIZE) transfer(ctx, null, p.seat, RULESET.startSalary, 'salary');
+      if (raw >= BOARD_SIZE) transfer(ctx, null, p.seat, salaryNow(s), 'salary');
       landOn(ctx, p, depth + 1);
       return;
     }
@@ -582,7 +589,7 @@ function drawChance(ctx: Ctx, p: PlayerState, depth: number): void {
       const raw = from + e.steps;
       p.position = ((raw % BOARD_SIZE) + BOARD_SIZE) % BOARD_SIZE;
       emit(ctx, { t: 'moved', seat: p.seat, from, to: p.position, steps: e.steps, direct: false });
-      if (e.steps > 0 && raw >= BOARD_SIZE) transfer(ctx, null, p.seat, RULESET.startSalary, 'salary');
+      if (e.steps > 0 && raw >= BOARD_SIZE) transfer(ctx, null, p.seat, salaryNow(s), 'salary');
       landOn(ctx, p, depth + 1);
       return;
     }
@@ -594,7 +601,7 @@ function drawChance(ctx: Ctx, p: PlayerState, depth: number): void {
       const raw = from + steps;
       p.position = raw % BOARD_SIZE;
       emit(ctx, { t: 'moved', seat: p.seat, from, to: p.position, steps, direct: false });
-      if (raw >= BOARD_SIZE) transfer(ctx, null, p.seat, RULESET.startSalary, 'salary');
+      if (raw >= BOARD_SIZE) transfer(ctx, null, p.seat, salaryNow(s), 'salary');
       landOn(ctx, p, depth + 1);
       return;
     }
@@ -690,6 +697,7 @@ function roundEnd(ctx: Ctx): void {
   const due = s.round % s.settings.minigameEvery === 0 || s.minigameRequested;
   s.minigameRequested = false;
   s.round += 1;
+  drawWorldEvent(ctx);
   const participants = s.order.filter((seat) => player(s, seat).role !== 'left');
   if (due && participants.length >= 2) {
     const kind: MinigameKind = (['reaction', 'memory', 'quiz'] as const)[s.stats.minigamesPlayed % 3]!;
@@ -698,6 +706,22 @@ function roundEnd(ctx: Ctx): void {
     return;
   }
   startTurn(ctx);
+}
+
+/** Draws the event of the new round (weighted, deterministic via the match RNG). */
+function drawWorldEvent(ctx: Ctx): void {
+  const s = ctx.s;
+  const total = WORLD_EVENTS.reduce((a, e) => a + e.weight, 0);
+  let roll = ctx.rng.int(0, total - 1);
+  const def = WORLD_EVENTS.find((e) => (roll -= e.weight) < 0) ?? WORLD_EVENTS[0]!;
+  const ev: WorldEventState = { kind: def.kind, round: s.round };
+  if (def.kind === 'tourism') {
+    const countries = GROUP_ORDER.filter((g) => g !== 'air');
+    ev.group = countries[ctx.rng.int(0, countries.length - 1)]!;
+  }
+  s.worldEvent = ev;
+  emit(ctx, { t: 'worldEvent', kind: ev.kind, round: ev.round, ...(ev.group ? { group: ev.group } : {}) });
+  if (def.kind === 'lottery') for (const p of s.players) if (p.role === 'alive') transfer(ctx, null, p.seat, WORLD_EVENT_NUMBERS.lotteryAmount, 'chance');
 }
 
 function resumeTurn(ctx: Ctx): void {
@@ -779,7 +803,7 @@ function upgrade(ctx: Ctx, seat: SeatId, tile: number): void {
   ensure(o.level === Math.min(...tiles.map((i) => s.tiles[i]!.level)), 'buildEvenly');
   ensure(!tiles.some((i) => isLocked(s, i)), 'locked');
   ensure(!s.upgradeBlocks.some((b) => b.target === seat && b.tile === tile && b.placedTurn < s.turn.seq), 'upgradeBlocked');
-  const cost = upgradeCost(tile);
+  const cost = upgradeCostNow(s, tile);
   ensure(available(s, seat) >= cost, 'noCash');
   transfer(ctx, seat, null, cost, 'upgrade', tile);
   o.level += 1;

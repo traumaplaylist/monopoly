@@ -1,4 +1,5 @@
-import { CHANCE_CARDS, ITEM_INFO, WORLD } from '@pb/content';
+import { CHANCE_CARDS, GROUPS, ITEM_INFO, WORLD, WORLD_EVENTS } from '@pb/content';
+import type { GroupId, WorldEventKind } from '@pb/content';
 import type { MatchEvent, MoneyReason, PublicMatch, SeatId, TradeSide } from '@pb/game-core';
 
 export const tileName = (i: number) => WORLD.tiles[i]?.name ?? `#${i}`;
@@ -38,6 +39,13 @@ export function sideText(side: TradeSide): string {
   return parts.length ? parts.join(', ') : 'ничего';
 }
 
+/** «Title — text» of a world event (country filled in for tourism). */
+export function worldEventText(kind: WorldEventKind, group?: GroupId): string {
+  const d = WORLD_EVENTS.find((x) => x.kind === kind);
+  if (!d) return '';
+  return `${d.icon} ${d.title}: ${d.text.replace('{country}', group ? GROUPS[group].name : '')}`;
+}
+
 /** Journal line for an event (null — not shown). */
 export function eventText(m: PublicMatch, e: MatchEvent, me: SeatId | null): string | null {
   const n = (s: SeatId | null) => seatName(m, s, me);
@@ -55,6 +63,8 @@ export function eventText(m: PublicMatch, e: MatchEvent, me: SeatId | null): str
       return `${n(e.to)} получает ${money(e.amount)} (${REASON[e.reason]})`;
     case 'bought':
       return `${n(e.seat)} покупает «${tileName(e.tile)}» за ${money(e.price)}`;
+    case 'worldEvent':
+      return `🌍 Раунд ${e.round}: ${worldEventText(e.kind, e.group)}`;
     case 'chance': {
       const c = CHANCE_CARDS.find((x) => x.id === e.card);
       return `${n(e.seat)}: Шанс — ${c?.text ?? ''}`;

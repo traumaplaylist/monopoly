@@ -54,6 +54,8 @@ interface UiState {
   placing: 'cone' | 'ticket' | 'ghostTrap' | 'ghostBlock' | null;
   toast: { text: string; kind: 'error' | 'info'; id: number } | null;
   chanceCard: { id: string; seat: SeatId; seq: number } | null;
+  /** World event of the new round to show as a card (from a fresh event). */
+  worldCard: { kind: string; group?: string; round: number; seq: number } | null;
   prefs: Prefs;
   pending: number;
   /** Full-screen wardrobe (character editor) is open. */
@@ -79,6 +81,7 @@ export const useStore = create<UiState>(() => ({
   placing: null,
   toast: null,
   chanceCard: null,
+  worldCard: null,
   prefs: storage.prefs(),
   pending: 0,
   wardrobe: false,
@@ -109,6 +112,7 @@ export function applySnapshot(snap: Snapshot): void {
     const moves: MoveAnim[] = [];
     let rollSeq = prev.rollSeq;
     let chanceCard = prev.chanceCard;
+    let worldCard = prev.worldCard;
     // Effects wait until the token of that batch has walked (steps × step time).
     const walk = Math.max(0, ...recent.filter((e) => e.t === 'moved').map((e) => (e.t === 'moved' ? Math.abs(e.steps) : 0))) * 240;
     const t0 = performance.now() + walk + 150;
@@ -125,11 +129,13 @@ export function applySnapshot(snap: Snapshot): void {
       if (e.t === 'moved') moves.push({ seat: e.seat, from: e.from, to: e.to, steps: e.steps });
       if (e.t === 'rolled') rollSeq = e.seq;
       if (e.t === 'chance') chanceCard = { id: e.card, seat: e.seat, seq: e.seq };
+      if (e.t === 'worldEvent') worldCard = { kind: e.kind, ...(e.group ? { group: e.group } : {}), round: e.round, seq: e.seq };
     }
     patch.moves = prev.prefs.reduceMotion ? [] : sameMatch ? [...prev.moves, ...moves].slice(-12) : [];
     patch.fx = prev.prefs.reduceMotion || !sameMatch ? [] : [...prev.fx.filter((f) => performance.now() - f.start < 3000), ...fx].slice(-24);
     patch.rollSeq = rollSeq;
     patch.chanceCard = chanceCard;
+    patch.worldCard = worldCard;
     patch.lastSeq = match.log.at(-1)?.seq ?? 0;
   } else {
     patch.moves = [];

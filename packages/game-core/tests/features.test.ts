@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CHANCE_CARDS, RULESET, WORLD } from '@pb/content';
-import { REACTION, advance, applyCommand, publicView } from '../src';
+import { REACTION, advance, applyCommand, publicView, rentFor } from '../src';
 import type { MatchState, MemoryGame, QuizGame, ReactionGame } from '../src';
 import { T0, act, cash, fail, finishTurn, giveTiles, newMatch, p, rollWith } from './helpers';
 
@@ -495,5 +495,49 @@ describe('предмет «Билет»', () => {
     expect(p(t, 's0').position).toBe(6);
     expect(cash(t, 's0')).toBe(1500 + RULESET.startSalary);
     expect(fail(t, 's0', { type: 'USE_TICKET', tile: 15 })).toBe('wrongPhase'); // ход уже сделан
+  });
+});
+
+describe('события мира', () => {
+  const withEvent = (kind: string, extra: Record<string, unknown> = {}) => {
+    const s = newMatch();
+    s.round = 3;
+    s.worldEvent = { kind: kind as never, round: 3, ...extra };
+    return s;
+  };
+
+  it('со 2-го раунда в начале каждого раунда выпадает событие; в 1-м — нет', () => {
+    let s = newMatch();
+    expect(s.worldEvent ?? null).toBeNull();
+    for (let i = 0; i < 4; i++) s = finishTurn(rollWith(s, 2, 2));
+    expect(s.round).toBe(2);
+    expect(s.worldEvent?.round).toBe(2);
+    expect(s.log.some((e) => e.t === 'worldEvent')).toBe(true);
+  });
+
+  it('сезон туризма ×2 в стране, шторм закрывает аэропорты, кризис −50%; событие прошлого раунда не действует', () => {
+    let s = giveTiles(withEvent('tourism', { group: 'egypt' }), 's1', 1);
+    expect(rentFor(s, 1)).toBe(40);
+    s = giveTiles(withEvent('storm'), 's1', 6);
+    expect(rentFor(s, 6)).toBe(0);
+    s = giveTiles(withEvent('crisis'), 's1', 1);
+    expect(rentFor(s, 1)).toBe(10);
+    s.round = 4;
+    expect(rentFor(s, 1)).toBe(20);
+  });
+
+  it('распродажа −25% к покупке, фестиваль — двойная зарплата, каникулы — без налога, бум — улучшения вдвое дешевле', () => {
+    let s = rollWith(withEvent('sale'), 1, 2); // Луксор 100 → 75
+    s = act(s, 's0', { type: 'BUY' });
+    expect(cash(s, 's0')).toBe(1500 - 75);
+    let f = withEvent('festival');
+    f.players[0]!.position = 38;
+    f = rollWith(f, 1, 1);
+    expect(cash(f, 's0')).toBe(1500 + 2 * RULESET.startSalary);
+    const t = rollWith(withEvent('taxHoliday'), 2, 2); // 4 = налог
+    expect(cash(t, 's0')).toBe(1500);
+    let b = giveTiles(withEvent('buildBoom'), 's0', 1, 3, 5);
+    b = act(b, 's0', { type: 'UPGRADE', tile: 1 });
+    expect(cash(b, 's0')).toBe(1500 - 25);
   });
 });

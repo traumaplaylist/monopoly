@@ -4,3 +4,4 @@ export * from './cards';
 export * from './geo';
 export * from './appearance';
 export * from './characterCatalog';
+export * from './events';

@@ -2,7 +2,7 @@
 // They act through the same commands as players.
 import { GROUPS, GROUP_ORDER, RULESET, groupTiles } from '@pb/content';
 import { REACTION } from './minigames';
-import { MAP, available, canPlaceTrap, currentSeat, isLocked, ownsFullGroup, player, tileDef } from './rules';
+import { MAP, available, canPlaceTrap, currentSeat, isLocked, ownsFullGroup, player, purchasePrice, tileDef, upgradeCostNow } from './rules';
 import type { Command, MatchState, SeatId } from './types';
 
 function hash(seat: SeatId, n: number): number {
@@ -82,7 +82,7 @@ export function botCommand(s: MatchState, seat: SeatId, now: number): Command | 
     case 'PRE_ROLL':
       return { type: 'ROLL' };
     case 'PURCHASE': {
-      const price = tileDef(s.purchaseTile!).price!;
+      const price = purchasePrice(s, s.purchaseTile!);
       return available(s, seat) - price >= 120 ? { type: 'BUY' } : { type: 'DECLINE_BUY' };
     }
     case 'RENT_CHOICE':
@@ -128,7 +128,7 @@ function legalUpgrade(s: MatchState, seat: SeatId): number | null {
     if (min >= RULESET.maxUpgradeLevel) continue;
     const tile = tiles.find((i) => s.tiles[i]!.level === min)!;
     if (s.upgradeBlocks.some((b) => b.target === seat && b.tile === tile)) continue;
-    if (available(s, seat) - GROUPS[g].upgradeCost >= 150) return tile;
+    if (available(s, seat) - upgradeCostNow(s, tile) >= 150) return tile;
   }
   return null;
 }

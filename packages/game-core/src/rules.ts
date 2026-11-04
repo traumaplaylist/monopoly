@@ -1,5 +1,5 @@
 // Pure queries over MatchState.
-import { GROUPS, WORLD, RULESET, groupTiles, pct } from '@pb/content';
+import { GROUPS, WORLD, RULESET, WORLD_EVENT_NUMBERS as EV, groupTiles, pct } from '@pb/content';
 import type { GroupId, TileDef } from '@pb/content';
 import { RuleError, ensure } from './ctx';
 import type { MatchState, Ownership, PlayerState, SeatId } from './types';
@@ -47,7 +47,47 @@ export function groupHasUpgrades(s: MatchState, index: number): boolean {
   return groupTiles(MAP, groupOf(index)).some((i) => (s.tiles[i]?.level ?? 0) > 0);
 }
 
+/** World event of the current round, if any. */
+export function eventNow(s: MatchState) {
+  const e = s.worldEvent;
+  return e && e.round === s.round ? e : null;
+}
+
+/** Rent with the round's world event applied (tourism ×2 in a country, storm closes airports, crisis −50%). */
 export function rentFor(s: MatchState, index: number): number {
+  const base = baseRentFor(s, index);
+  const e = eventNow(s);
+  if (!e || base === 0) return base;
+  const g = tileDef(index).group;
+  if (e.kind === 'storm' && g === 'air') return 0;
+  if (e.kind === 'tourism' && g === e.group) return base * EV.tourismMultiplier;
+  if (e.kind === 'crisis') return pct(base, EV.crisisRate);
+  return base;
+}
+
+/** Price of a free tile now (sale event −25%). */
+export function purchasePrice(s: MatchState, index: number): number {
+  const p = tileDef(index).price ?? 0;
+  return eventNow(s)?.kind === 'sale' ? pct(p, EV.saleRate) : p;
+}
+
+/** Salary for passing «Старт» now (festival ×2). */
+export function salaryNow(s: MatchState): number {
+  return eventNow(s)?.kind === 'festival' ? RULESET.startSalary * EV.festivalMultiplier : RULESET.startSalary;
+}
+
+/** Tax of a tax tile now (tax holiday: 0). */
+export function taxNow(s: MatchState, index: number): number {
+  return eventNow(s)?.kind === 'taxHoliday' ? 0 : (tileDef(index).tax ?? 0);
+}
+
+/** Upgrade cost now (building boom −50%); selling refunds are based on the normal cost. */
+export function upgradeCostNow(s: MatchState, index: number): number {
+  const c = upgradeCost(index);
+  return eventNow(s)?.kind === 'buildBoom' ? pct(c, EV.buildBoomRate) : c;
+}
+
+function baseRentFor(s: MatchState, index: number): number {
   const t = tileDef(index);
   const o = s.tiles[index];
   if (!o || !o.owner || o.mortgaged || !t.baseRent) return 0;

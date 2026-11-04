@@ -1,4 +1,4 @@
-import type { Appearance } from '@pb/content';
+import type { Appearance, GroupId, WorldEventKind } from '@pb/content';
 import type { ChanceCard, ItemKind } from '@pb/content';
 
 export const SCHEMA_VERSION = 1;
@@ -253,6 +253,13 @@ export interface MatchSettings {
   debug: boolean;
 }
 
+export interface WorldEventState {
+  kind: WorldEventKind;
+  /** Country of a «tourism» event. */
+  group?: GroupId;
+  round: number;
+}
+
 export interface MatchState {
   schemaVersion: number;
   rulesVersion: string;
@@ -290,6 +297,8 @@ export interface MatchState {
   nextId: number;
   finishedAt: number | null;
   standings: FinalStanding[] | null;
+  /** Event of the current round (from round 2); optional so older saves load. */
+  worldEvent?: WorldEventState | null;
   eventSeq: number;
   log: MatchEvent[];
   stats: { minigamesPlayed: number; duelsPlayed: number; tradesAccepted?: number; phaseSince: number; phaseTime: Record<string, number> };
@@ -303,6 +312,7 @@ export type MatchEvent =
   | Ev<'moved', { seat: SeatId; from: number; to: number; steps: number; direct: boolean }>
   | Ev<'money', { from: SeatId | null; to: SeatId | null; amount: number; reason: MoneyReason; tile?: number }>
   | Ev<'bought', { seat: SeatId; tile: number; price: number }>
+  | Ev<'worldEvent', { kind: WorldEventKind; group?: GroupId; round: number }>
   | Ev<'chance', { seat: SeatId; card: ChanceCard['id'] }>
   | Ev<'item', { seat: SeatId; item: ItemKind; action: 'gained' | 'used' | 'dropped' | 'blocked' }>
   | Ev<'trap', { seat: SeatId; tile: number; action: 'placed' | 'triggered' | 'shielded'; by: SeatId }>
