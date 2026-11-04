@@ -254,9 +254,9 @@ function Results({ mg, m, me }: { mg: PublicMinigame; m: PublicMatch; me: string
             const p = m.players.find((x) => x.seat === r.seat)!;
             return (
               <tr key={r.seat} className={r.seat === me ? 'me' : ''}>
-                <td>{r.place ?? (r.ghost ? '👻' : '—')}</td>
+                <td className="place">{r.place === 1 ? '🥇' : r.place === 2 ? '🥈' : r.place === 3 ? '🥉' : (r.place ?? (r.ghost ? '👻' : '—'))}</td>
                 <td>
-                  <Portrait avatar={p.avatar} color={p.color} ghost={r.ghost} size={24} appearance={p.appearance} /> {seatName(m, r.seat, me)}
+                  <Portrait avatar={p.avatar} color={p.color} ghost={r.ghost} size={34} appearance={p.appearance} /> {seatName(m, r.seat, me)}
                 </td>
                 <td>{r.participated ? `${r.score} очк.` : 'не играл'}</td>
                 <td>{mg.context === 'group' ? (r.ghost ? (r.participated ? '+1 ⚡' : '') : r.prize ? `+${money(r.prize)}` : '') : ''}</td>

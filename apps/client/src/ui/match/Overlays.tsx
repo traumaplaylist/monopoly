@@ -183,9 +183,9 @@ export function FinishedOverlay() {
               const p = m.players.find((x) => x.seat === s.seat)!;
               return (
                 <tr key={s.seat} className={s.seat === me ? 'me' : ''}>
-                  <td>{s.rank ?? (s.role === 'ghost' ? '👻' : '—')}</td>
+                  <td className="place">{s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : (s.rank ?? (s.role === 'ghost' ? '👻' : '—'))}</td>
                   <td>
-                    <Portrait avatar={p.avatar} color={p.color} ghost={s.role === 'ghost'} size={28} appearance={p.appearance} /> {seatName(m, s.seat, me)}
+                    <Portrait avatar={p.avatar} color={p.color} ghost={s.role === 'ghost'} size={40} appearance={p.appearance} /> {seatName(m, s.seat, me)}
                   </td>
                   <td>{s.role === 'alive' ? `${money(s.value)} монет` : s.role === 'ghost' ? `проделок: ${s.pranks}` : 'вышел'}</td>
                 </tr>

@@ -29,3 +29,11 @@ describe('титулы в конце партии', () => {
     expect(titles.some((t) => t.title.key === 'tilesWalked')).toBe(true);
   });
 });
+
+describe('склонение в титулах', () => {
+  it('1 сделку, 2 сделки, 5 сделок, 11 сделок, 21 сделку', async () => {
+    const { plural } = await import('../src');
+    const f = ['сделку', 'сделки', 'сделок'] as const;
+    expect([1, 2, 5, 11, 21, 104].map((n) => plural(n, f))).toEqual(['сделку', 'сделки', 'сделок', 'сделок', 'сделку', 'сделки']);
+  });
+});

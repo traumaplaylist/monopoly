@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { GROUPS, WORLD, RULESET, groupTiles } from '@pb/content';
+import { GROUPS, WORLD, RULESET, WORLD_EVENTS, groupTiles } from '@pb/content';
 import { available, isTradeableTile, mortgageValue, ownedTiles, rentFor, unmortgageCost, upgradeCost } from '@pb/game-core';
 import type { Command, MatchState, PublicMatch, TradeSide } from '@pb/game-core';
 import { api, send } from '../../net/connection';
@@ -55,6 +55,41 @@ function manageReason(m: PublicMatch, seat: string | null, raising: boolean): st
   return null;
 }
 
+/** Rent ladder of a tile; the row that applies now (without world events) is highlighted. */
+function RentTable({ tile }: { tile: number }) {
+  const m = useMatch();
+  const t = WORLD.tiles[tile]!;
+  const o = m.tiles[tile];
+  if (!o) return null;
+  const group = groupTiles(WORLD, t.group!);
+  const mine = o.owner ? group.filter((i) => m.tiles[i]?.owner === o.owner && !m.tiles[i]!.mortgaged).length : 0;
+  const rows: [string, number, boolean][] =
+    t.group === 'air'
+      ? RULESET.airportRent.map((v, k) => [`${k + 1} аэропорт${k === 0 ? '' : k < 4 ? 'а' : 'ов'} у владельца`, v, !!o.owner && mine === k + 1] as [string, number, boolean])
+      : [
+          ['Один город', t.baseRent!, !!o.owner && o.level === 0 && mine < group.length - 1],
+          ['2 города из 3', Math.floor(t.baseRent! * RULESET.partialSetMultiplier), !!o.owner && o.level === 0 && mine === group.length - 1],
+          ['Вся страна', t.baseRent! * RULESET.fullSetMultiplier, !!o.owner && o.level === 0 && mine === group.length],
+          ['Уровень 1 ◆', t.baseRent! * RULESET.upgradeMultipliers[1], o.level === 1],
+          ['Уровень 2 ◆◆', t.baseRent! * RULESET.upgradeMultipliers[2], o.level === 2],
+          ['Уровень 3 ◆◆◆', t.baseRent! * RULESET.upgradeMultipliers[3], o.level === 3],
+        ];
+  return (
+    <table className="rent">
+      <tbody>
+        {rows.map(([label, v, on], k) => (
+          <tr key={k} className={on ? 'on' : ''}>
+            <td>{label}</td>
+            <td>
+              <Coins n={v} />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function TileSheet({ tile }: { tile: number }) {
   const m = useMatch();
   const me = useStore((s) => s.seat);
@@ -67,6 +102,9 @@ function TileSheet({ tile }: { tile: number }) {
   const blocked = m.upgradeBlocks.some((b) => b.tile === tile);
   const why = manageReason(m, me, false);
   const whyRaise = manageReason(m, me, true);
+  const curRent = o?.owner ? rentFor(S(m), tile) : 0;
+  const e = m.worldEvent && m.worldEvent.round === m.round ? m.worldEvent : null;
+  const ev = e && ['tourism', 'storm', 'crisis'].includes(e.kind) ? WORLD_EVENTS.find((x) => x.kind === e.kind)?.title : null;
   return (
     <Sheet title={t.name} testId="tile-sheet">
       <div className="tile-head" style={{ background: specialColor(t) ?? '#5b4c86' }}>
@@ -92,28 +130,16 @@ function TileSheet({ tile }: { tile: number }) {
               {group.filter((i) => m.tiles[i]?.owner && m.tiles[i]!.owner === o.owner).length} / {group.length}
             </b>
           </div>
-          <table className="rent">
-            <tbody>
-              {[
-                ['Базовая аренда', t.baseRent!],
-                ['Полный комплект', t.baseRent! * RULESET.fullSetMultiplier],
-                ['Уровень 1', t.baseRent! * RULESET.upgradeMultipliers[1]],
-                ['Уровень 2', t.baseRent! * RULESET.upgradeMultipliers[2]],
-                ['Уровень 3', t.baseRent! * RULESET.upgradeMultipliers[3]],
-              ].map(([label, v], k) => (
-                <tr key={k} className={(k >= 2 && o.level === k - 1) || (k < 2 && o.owner && rentFor(S(m), tile) === v && o.level === 0) ? 'on' : ''}>
-                  <td>{label}</td>
-                  <td>
-                    <Coins n={v as number} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <RentTable tile={tile} />
+          {curRent > 0 && <div className="kv now">
+            <span>Аренда сейчас{ev ? ` (${ev})` : ''}</span>
+            <Coins n={curRent} />
+          </div>}
           <div className="kv">
-            <span>Улучшение / залог / выкуп</span>
+            <span>{t.group === 'air' ? 'Залог / выкуп' : 'Улучшение / залог / выкуп'}</span>
             <b>
-              {money(upgradeCost(tile))} / {money(mortgageValue(tile))} / {money(unmortgageCost(tile))}
+              {t.group === 'air' ? '' : `${money(upgradeCost(tile))} / `}
+              {money(mortgageValue(tile))} / {money(unmortgageCost(tile))}
             </b>
           </div>
           {o.mortgaged && <div className="tag">Заложено — аренды нет</div>}
@@ -123,7 +149,7 @@ function TileSheet({ tile }: { tile: number }) {
       {trap && <div className="tag">🚧 Ловушка: следующий соперник платит {RULESET.trapFine} банку</div>}
       {mine && o && (
         <div className="row wrap">
-          <Act cmd={{ type: 'UPGRADE', tile }} label={`Улучшить (${money(upgradeCost(tile))})`} reason={why} primary />
+          {t.group !== 'air' && <Act cmd={{ type: 'UPGRADE', tile }} label={`Улучшить (${money(upgradeCost(tile))})`} reason={why} primary />}
           {o.level > 0 && <Act cmd={{ type: 'SELL_UPGRADE', tile }} label="Продать улучшение" reason={whyRaise} />}
           {!o.mortgaged && <Act cmd={{ type: 'MORTGAGE', tile }} label={`Заложить +${money(mortgageValue(tile))}`} reason={whyRaise} />}
           {o.mortgaged && <Act cmd={{ type: 'UNMORTGAGE', tile }} label={`Выкупить −${money(unmortgageCost(tile))}`} reason={why} />}
