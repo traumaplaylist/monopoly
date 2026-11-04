@@ -162,7 +162,7 @@ export function FinishedOverlay() {
                 <tr key={s.seat} className={s.seat === me ? 'me' : ''}>
                   <td>{s.rank ?? (s.role === 'ghost' ? '👻' : '—')}</td>
                   <td>
-                    <Portrait avatar={p.avatar} color={p.color} ghost={s.role === 'ghost'} size={28} /> {seatName(m, s.seat, me)}
+                    <Portrait avatar={p.avatar} color={p.color} ghost={s.role === 'ghost'} size={28} appearance={p.appearance} /> {seatName(m, s.seat, me)}
                   </td>
                   <td>{s.role === 'alive' ? `${money(s.value)} монет` : s.role === 'ghost' ? `проделок: ${s.pranks}` : 'вышел'}</td>
                 </tr>

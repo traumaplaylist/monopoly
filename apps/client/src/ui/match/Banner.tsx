@@ -1,4 +1,5 @@
 import { anchorRef } from '../../render/BoardAnchor';
+import { Portrait } from '../Portrait';
 import { useStore } from '../../state/store';
 import { secondsLeft, seatName } from '../format';
 import { acting, currentSeat, useMatch, useNow } from '../hooks';
@@ -21,6 +22,7 @@ export function Banner() {
   const me = useStore((s) => s.seat);
   const now = useNow();
   const cur = currentSeat(m);
+  const curPlayer = m.players.find((p) => p.seat === cur);
   const myTurn = cur === me && (m.phase === 'PRE_ROLL' || m.phase === 'POST_ROLL');
   const waitingMe = acting(m).includes(me ?? '');
   let title: string;
@@ -32,6 +34,7 @@ export function Banner() {
   return (
     <div className="anchor" ref={anchorRef('banner')}>
       <div className={`banner ${waitingMe ? 'mine' : ''}`} data-testid="banner">
+        {curPlayer && <Portrait avatar={curPlayer.avatar} color={curPlayer.color} size={64} appearance={curPlayer.appearance} ghost={curPlayer.role === 'ghost'} />}
         <div className="banner-title">{title}</div>
         {left !== null && m.phase !== 'MINIGAME' && m.phase !== 'DUEL' && (
           <div className={`timer ${left <= 5 ? 'low' : ''}`} title="Осталось секунд">

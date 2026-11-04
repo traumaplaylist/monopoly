@@ -11,7 +11,7 @@ import { OUTFITS, SLOTS } from '@pb/content';
 import type { Appearance, OutfitDef, Slot } from '@pb/content';
 import { figureGeometry, jellyMaterial } from './jelly';
 
-const CLIPS_URL = 'models/characters/clips.glb';
+export const CLIPS_URL = 'models/characters/clips.glb';
 const BACKPACK_OUTFIT = 'male-adventurer';
 /** Head bone scale: slightly bigger head reads «cute» and stays recognisable on the small board. */
 const HEAD_SCALE = 1.28;
@@ -82,7 +82,7 @@ function meshesIn(o: Object3D): Mesh[] {
 }
 
 /** Builds a posable group: body outfit skeleton + slot nodes from other outfits re-bound to it. */
-function assemble(scenes: Map<string, Object3D>, a: Appearance, ghost: boolean, only?: Slot): Group {
+export function assemble(scenes: Map<string, Object3D>, a: Appearance, ghost: boolean, only?: Slot): Group {
   const bodyDef = outfit(a.body);
   const main = cloneSkinned(scenes.get(bodyDef.file)!) as Group;
   const bones = bonesByName(main);

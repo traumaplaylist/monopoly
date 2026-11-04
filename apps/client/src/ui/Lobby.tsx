@@ -3,7 +3,7 @@ import { RULESET } from '@pb/content';
 import type { RoomSettings } from '@pb/protocol';
 import { api } from '../net/connection';
 import { toast, useStore } from '../state/store';
-import { AVATAR_NAMES, Portrait } from './Portrait';
+import { Portrait } from './Portrait';
 import { useRestoreAppearance } from './Wardrobe';
 import { set as setUi } from '../state/store';
 
@@ -42,7 +42,6 @@ export function Lobby() {
   }
   const setSettings = (patch: Partial<RoomSettings>) => api.settings({ ...room.settings, ...patch });
   useRestoreAppearance(me?.appearance);
-  const takenAvatars = new Set(room.seats.filter((s) => s.seat !== seat).map((s) => s.avatar));
 
   return (
     <div className="lobby">
@@ -66,7 +65,7 @@ export function Lobby() {
               <div key={i} className={`seat-card ${s ? '' : 'empty'} ${s?.seat === seat ? 'me' : ''}`}>
                 {s ? (
                   <>
-                    <Portrait avatar={s.avatar} color={SEAT_COLORS[i]!} size={52} />
+                    <Portrait avatar={s.avatar} color={SEAT_COLORS[i]!} size={52} appearance={s.appearance} />
                     <div className="seat-info">
                       <b>
                         {s.name}
@@ -82,23 +81,6 @@ export function Lobby() {
               </div>
             );
           })}
-        </div>
-
-        <div className="section">
-          <div className="muted">Ваш портрет</div>
-          <div className="avatar-row">
-            {AVATAR_NAMES.map((_, a) => (
-              <button
-                key={a}
-                className={`avatar-pick ${me?.avatar === a ? 'on' : ''}`}
-                disabled={takenAvatars.has(a)}
-                title={takenAvatars.has(a) ? 'Занят' : AVATAR_NAMES[a]}
-                onClick={() => api.avatar(a)}
-              >
-                <Portrait avatar={a} color="#8b55e6" size={48} />
-              </button>
-            ))}
-          </div>
         </div>
 
         {me && (

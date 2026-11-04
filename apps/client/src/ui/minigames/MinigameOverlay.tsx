@@ -44,7 +44,7 @@ function Intro({ mg, m, me }: { mg: PublicMinigame; m: PublicMatch; me: string |
           const p = m.players.find((x) => x.seat === s)!;
           return (
             <span key={s} className={`chip ${mg.ready.includes(s) ? 'on' : ''}`}>
-              <Portrait avatar={p.avatar} color={p.color} ghost={p.role === 'ghost'} size={22} /> {seatName(m, s, me)}
+              <Portrait avatar={p.avatar} color={p.color} ghost={p.role === 'ghost'} size={22} appearance={p.appearance} /> {seatName(m, s, me)}
             </span>
           );
         })}
@@ -256,7 +256,7 @@ function Results({ mg, m, me }: { mg: PublicMinigame; m: PublicMatch; me: string
               <tr key={r.seat} className={r.seat === me ? 'me' : ''}>
                 <td>{r.place ?? (r.ghost ? '👻' : '—')}</td>
                 <td>
-                  <Portrait avatar={p.avatar} color={p.color} ghost={r.ghost} size={24} /> {seatName(m, r.seat, me)}
+                  <Portrait avatar={p.avatar} color={p.color} ghost={r.ghost} size={24} appearance={p.appearance} /> {seatName(m, r.seat, me)}
                 </td>
                 <td>{r.participated ? `${r.score} очк.` : 'не играл'}</td>
                 <td>{mg.context === 'group' ? (r.ghost ? (r.participated ? '+1 ⚡' : '') : r.prize ? `+${money(r.prize)}` : '') : ''}</td>

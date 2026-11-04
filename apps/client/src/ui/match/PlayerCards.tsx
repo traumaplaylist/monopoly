@@ -25,7 +25,7 @@ export function PlayerCards() {
             style={{ ['--pc' as string]: p.color }}
             data-testid={`player-${seat}`}
           >
-            <Portrait avatar={p.avatar} color={p.color} ghost={p.role === 'ghost'} size={52} />
+            <Portrait avatar={p.avatar} color={p.color} ghost={p.role === 'ghost'} size={52} appearance={p.appearance} />
             <div className="pinfo">
               <div className="pname">
                 {seat === me ? 'Ты' : p.name}
