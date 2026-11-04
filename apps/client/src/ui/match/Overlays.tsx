@@ -1,3 +1,4 @@
+import { matchTitles } from '@pb/game-core';
 import { useEffect, useState } from 'react';
 import { CHANCE_CARDS, GROUPS, ITEM_INFO, WORLD_EVENTS } from '@pb/content';
 import type { GroupId } from '@pb/content';
@@ -173,6 +174,7 @@ export function FinishedOverlay() {
   const voted = !!me && !!room?.rematchVotes.includes(me);
   const humans = room?.seats.filter((s) => !s.isBot) ?? [];
   const minutes = m.finishedAt ? Math.round((m.finishedAt - m.startedAt) / 60000) : null;
+  const titles = matchTitles(m);
   return (
     <div className="modal-layer">
       <div className="modal panel finished" data-testid="finished">
@@ -193,6 +195,24 @@ export function FinishedOverlay() {
             })}
           </tbody>
         </table>
+        {titles.length > 0 && (
+          <div className="titles" data-testid="titles">
+            {titles.map((t) => {
+              const p = m.players.find((x) => x.seat === t.seat)!;
+              return (
+                <div key={t.title.key + t.seat} className="title-card">
+                  <span className="title-icon">{t.title.icon}</span>
+                  <span className="title-body">
+                    <b>{t.title.name}</b>
+                    <span>
+                      <Portrait avatar={p.avatar} color={p.color} size={20} appearance={p.appearance} /> {seatName(m, t.seat, me)} — {t.text}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
         <p className="muted">
           Итог = деньги + 50% цены незаложенных объектов + 50% стоимости улучшений.
           {minutes !== null && ` Партия длилась ${minutes} мин.`}

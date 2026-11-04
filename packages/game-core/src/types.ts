@@ -253,6 +253,20 @@ export interface MatchSettings {
   debug: boolean;
 }
 
+/** Counters behind the end-of-game titles. */
+export interface PlayerStats {
+  rentPaid: number;
+  rentReceived: number;
+  bought: number;
+  auctionsWon: number;
+  tilesWalked: number;
+  chanceCards: number;
+  minigameWins: number;
+  duelsWon: number;
+  trades: number;
+  taxesPaid: number;
+}
+
 export interface WorldEventState {
   kind: WorldEventKind;
   /** Country of a «tourism» event. */
@@ -301,7 +315,15 @@ export interface MatchState {
   worldEvent?: WorldEventState | null;
   eventSeq: number;
   log: MatchEvent[];
-  stats: { minigamesPlayed: number; duelsPlayed: number; tradesAccepted?: number; phaseSince: number; phaseTime: Record<string, number> };
+  stats: {
+    minigamesPlayed: number;
+    duelsPlayed: number;
+    tradesAccepted?: number;
+    phaseSince: number;
+    phaseTime: Record<string, number>;
+    /** Per-seat counters for the end-of-game titles (optional for older saves). */
+    players?: Record<SeatId, PlayerStats>;
+  };
 }
 
 type Ev<T extends string, P> = { t: T; seq: number; at: number } & P;

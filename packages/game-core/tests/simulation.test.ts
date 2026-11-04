@@ -15,3 +15,17 @@ describe('симуляция партий', () => {
     expect(simulate(42).s).toEqual(simulate(42).s);
   });
 });
+
+describe('титулы в конце партии', () => {
+  it('после партии ботов есть счётчики и титулы; каждый титул — у игрока с максимумом', async () => {
+    const { matchTitles } = await import('../src');
+    const { s } = simulate(3);
+    const titles = matchTitles(s);
+    expect(titles.length).toBeGreaterThan(3);
+    for (const t of titles) {
+      const best = Math.max(...s.players.map((p) => s.stats.players?.[p.seat]?.[t.title.key] ?? 0));
+      expect(t.value).toBe(best);
+    }
+    expect(titles.some((t) => t.title.key === 'tilesWalked')).toBe(true);
+  });
+});

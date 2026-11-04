@@ -298,6 +298,12 @@ input, select { background: #fff; }
 .results td { padding: 6px 4px; text-align: left; vertical-align: middle; }
 .results td img { vertical-align: middle; margin-right: 6px; }
 .results tr.me { color: var(--ochre); }
+.titles { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; }
+.title-card { display: flex; gap: 8px; align-items: center; text-align: left; padding: 8px 10px; border-radius: 14px; background: linear-gradient(180deg, #fff, #f6ecd9); box-shadow: var(--lift-sm); }
+.title-icon { font-size: 1.7rem; }
+.title-body { display: grid; font-size: 0.82rem; line-height: 1.25; }
+.title-body b { font-family: var(--display); font-size: 1rem; color: var(--navy); }
+.title-body .portrait { vertical-align: -5px; }
 .toast { position: fixed; left: 50%; bottom: calc(120px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--plum); border: 2px solid var(--line); padding: 10px 16px; border-radius: 14px; box-shadow: var(--lift); max-width: 90vw; text-align: center; }
 .toast.error { border-color: var(--coral); color: #c0321d; }
 .conn-banner { position: fixed; top: env(safe-area-inset-top); left: 50%; transform: translateX(-50%); z-index: 70; margin-top: 8px; background: #ffe9e4; color: #8a2414; border: 2px solid var(--coral); padding: 8px 14px; border-radius: 10px; display: flex; gap: 10px; align-items: center; max-width: 92vw; font-size: 0.9rem; }

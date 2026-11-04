@@ -44,6 +44,7 @@ import type {
   Result,
   SeatId,
   TradeSide,
+  PlayerStats,
   WorldEventState,
 } from './types';
 import { SCHEMA_VERSION } from './types';
@@ -261,6 +262,7 @@ function handle(ctx: Ctx, seat: SeatId, cmd: Command): void {
       ensure(available(s, seat) >= price, 'noCash');
       transfer(ctx, seat, null, price, 'purchase', t.index);
       own(s, t.index).owner = seat;
+      bump(s, seat, 'bought');
       emit(ctx, { t: 'bought', seat, tile: t.index, price });
       s.purchaseTile = null;
       return proceed(ctx);
@@ -341,6 +343,8 @@ function handle(ctx: Ctx, seat: SeatId, cmd: Command): void {
       executeSide(ctx, tr.from, tr.to, tr.give);
       executeSide(ctx, tr.to, tr.from, tr.get);
       s.stats.tradesAccepted = (s.stats.tradesAccepted ?? 0) + 1;
+      bump(s, tr.from, 'trades');
+      bump(s, tr.to, 'trades');
       emit(ctx, { t: 'trade', offer: tr, result: 'accepted' });
       return resumeTurn(ctx);
     }
@@ -455,8 +459,20 @@ function requireManage(s: MatchState, seat: SeatId, raising: boolean): void {
 
 // ---------------------------------------------------------------- money
 
+/** Bumps an end-of-game counter. */
+function bump(s: MatchState, seat: SeatId, key: keyof PlayerStats, n = 1): void {
+  const all = (s.stats.players ??= {});
+  const p = (all[seat] ??= { rentPaid: 0, rentReceived: 0, bought: 0, auctionsWon: 0, tilesWalked: 0, chanceCards: 0, minigameWins: 0, duelsWon: 0, trades: 0, taxesPaid: 0 });
+  p[key] += n;
+}
+
 function transfer(ctx: Ctx, from: SeatId | null, to: SeatId | null, amount: number, reason: MoneyReason, tile?: number): void {
   if (amount <= 0) return;
+  if (reason === 'rent') {
+    if (from) bump(ctx.s, from, 'rentPaid', amount);
+    if (to) bump(ctx.s, to, 'rentReceived', amount);
+  }
+  if (reason === 'tax' && from) bump(ctx.s, from, 'taxesPaid', amount);
   if (from) {
     const p = player(ctx.s, from);
     if (p.cash < amount) throw new Error(`internal: insufficient cash for ${from}`);
@@ -506,6 +522,7 @@ function moveBy(ctx: Ctx, p: PlayerState, steps: number): void {
   const to = ((raw % BOARD_SIZE) + BOARD_SIZE) % BOARD_SIZE;
   p.position = to;
   emit(ctx, { t: 'moved', seat: p.seat, from, to, steps, direct: false });
+  if (steps > 0) bump(ctx.s, p.seat, 'tilesWalked', steps);
   // Salary exactly once per crossing (landing on Start counts as crossing).
   if (steps > 0 && raw >= BOARD_SIZE) transfer(ctx, null, p.seat, salaryNow(ctx.s), 'salary');
   landOn(ctx, p, 0);
@@ -567,6 +584,7 @@ function drawChance(ctx: Ctx, p: PlayerState, depth: number): void {
   const id = s.deck.shift()!;
   s.deck.push(id);
   const card = CHANCE_CARDS.find((c) => c.id === id)!;
+  bump(s, p.seat, 'chanceCards');
   emit(ctx, { t: 'chance', seat: p.seat, card: id });
   const e = card.effect;
   switch (e.kind) {
@@ -777,6 +795,7 @@ function finishAuction(ctx: Ctx): void {
   if (au.leader && player(s, au.leader).role === 'alive') {
     transfer(ctx, au.leader, null, au.highBid, 'auction', au.tile);
     own(s, au.tile).owner = au.leader;
+    bump(ctx.s, au.leader, 'auctionsWon');
     emit(ctx, { t: 'auctionEnd', tile: au.tile, winner: au.leader, price: au.highBid });
   } else {
     emit(ctx, { t: 'auctionEnd', tile: au.tile, winner: null, price: 0 });
@@ -1059,6 +1078,7 @@ function applyMinigameOutcome(ctx: Ctx): void {
     s.stats.minigamesPlayed += 1;
     for (const r of mg.results) {
       const p = player(s, r.seat);
+      if (r.place === 1 && r.participated) bump(s, r.seat, 'minigameWins');
       if (r.prize > 0 && p.role === 'alive') transfer(ctx, null, r.seat, r.prize, 'minigame');
       if (p.role === 'ghost' && r.participated) p.ghostEnergy = Math.min(RULESET.ghostEnergyMax, p.ghostEnergy + 1);
     }
@@ -1075,6 +1095,7 @@ function applyMinigameOutcome(ctx: Ctx): void {
   else if (!sl.participated) outcome = 'buyerWon';
   else outcome = b.score > sl.score ? 'buyerWon' : b.score < sl.score ? 'sellerWon' : 'draw';
   duel.outcome = outcome;
+  if (outcome !== 'draw') bump(s, outcome === 'buyerWon' ? offer.buyer : offer.seller, 'duelsWon');
   duel.reserved = 0;
   if (outcome === 'draw') {
     player(s, offer.buyer).duelTokens += 1;

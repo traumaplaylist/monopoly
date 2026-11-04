@@ -7,3 +7,4 @@ export * from './bot';
 export { RuleError } from './ctx';
 export * from './time';
 export * from './sim';
+export * from './titles';
