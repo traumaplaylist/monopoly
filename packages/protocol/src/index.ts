@@ -77,6 +77,8 @@ export const RoomSettingsSchema = z.object({
   minigameEvery: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   /** Dev-only: allow starting with bots in empty seats. Ignored unless the server runs in dev mode. */
   debugBots: z.boolean().optional(),
+  /** Fill empty seats with bots when the host starts (allowed in production). */
+  bots: z.boolean().optional(),
 });
 export type RoomSettings = z.infer<typeof RoomSettingsSchema>;
 
@@ -110,6 +112,8 @@ export interface SeatPublic {
   ready: boolean;
   connected: boolean;
   isBot: boolean;
+  /** A human seat currently played by a bot (offline too long, or left the match). */
+  autopilot: boolean;
   isHost: boolean;
 }
 

@@ -55,7 +55,8 @@ export const RULESET = {
   ghostEnergyMax: 2,
 
   // Room / connection policy (server)
-  absenceTimeoutMs: 5 * 60_000,
+  /** A player offline this long is played by a bot until they return (the seat is kept). */
+  autopilotAfterMs: 45_000,
 } as const;
 
 export type Ruleset = typeof RULESET;

@@ -17,13 +17,13 @@ export function Lobby() {
   const humans = room.seats.filter((s) => !s.isBot);
   const allReady = humans.every((s) => s.ready);
   const allOnline = humans.every((s) => s.connected);
-  const debug = !!room.settings.debugBots && room.devMode;
+  const debug = !!room.settings.bots || (!!room.settings.debugBots && room.devMode);
   const [copied, setCopied] = useState(false);
 
   const startReason = !isHost
     ? 'Начать игру может хозяин комнаты'
     : !debug && room.seats.length < RULESET.seats
-      ? `Ждём игроков: ${room.seats.length} из ${RULESET.seats}`
+      ? `Ждём игроков: ${room.seats.length} из ${RULESET.seats} — или включите ботов`
       : !allReady
         ? 'Не все нажали «Готов»'
         : !allOnline
@@ -72,7 +72,7 @@ export function Lobby() {
                         {s.name}
                         {s.isHost && <span title="Хозяин комнаты"> 👑</span>}
                       </b>
-                      <span className={s.ready ? 'ok' : 'muted'}>{s.isBot ? 'бот (отладка)' : s.ready ? 'готов' : 'не готов'}</span>
+                      <span className={s.ready ? 'ok' : 'muted'}>{s.isBot ? '🤖 бот' : s.ready ? 'готов' : 'не готов'}</span>
                     </div>
                     <span className={`dot ${s.connected ? 'on' : 'off'}`} title={s.connected ? 'в сети' : 'не в сети'} />
                   </>
@@ -119,12 +119,11 @@ export function Lobby() {
               </button>
             ))}
           </div>
-          {room.devMode && (
-            <label className="check">
-              <input type="checkbox" checked={!!room.settings.debugBots} disabled={!isHost} onChange={(e) => setSettings({ debugBots: e.target.checked })} data-testid="debug-bots" />
-              <span>Отладка: заполнить пустые места ботами (только режим разработки)</span>
-            </label>
-          )}
+          <label className="check">
+            <input type="checkbox" checked={!!room.settings.bots} disabled={!isHost} onChange={(e) => setSettings({ bots: e.target.checked })} data-testid="fill-bots" />
+            <span>🤖 Добавить ботов на свободные места (можно играть вдвоём или втроём)</span>
+          </label>
+          <p className="hint">Если кто-то выйдет из партии или пропадёт со связью больше чем на 45 с, за него сыграет бот, пока он не вернётся.</p>
           <p className="hint">Партия: {RULESET.maxRounds} раундов, старт {RULESET.startCash} монет, 3 жетона дуэли, щит у каждого.</p>
         </div>
 

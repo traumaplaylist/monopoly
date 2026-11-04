@@ -180,7 +180,7 @@ export class RoomService {
       status: 'lobby',
       hostSeat: 's0',
       seats: SEATS.map((s) => this.emptySeat(s)),
-      settings: { minigameEvery: settings?.minigameEvery ?? RULESET.minigameEveryRoundsDefault, debugBots: !!settings?.debugBots && this.config.devMode },
+      settings: { minigameEvery: settings?.minigameEvery ?? RULESET.minigameEveryRoundsDefault, debugBots: !!settings?.debugBots && this.config.devMode, bots: !!settings?.bots },
       match: null,
       matchCount: 0,
       rematchVotes: [],
@@ -262,7 +262,7 @@ export class RoomService {
     const { rt, seat } = this.requireLobbySeat(guestId);
     if (rt.rec.status !== 'lobby') throw new ServiceError('notLobby');
     if (rt.rec.hostSeat !== seat.seat) throw new ServiceError('notHost');
-    rt.rec.settings = { minigameEvery: settings.minigameEvery, debugBots: !!settings.debugBots && this.config.devMode };
+    rt.rec.settings = { minigameEvery: settings.minigameEvery, debugBots: !!settings.debugBots && this.config.devMode, bots: !!settings.bots };
     for (const s of rt.rec.seats) s.ready = false;
     this.commit(rt);
   }
@@ -273,7 +273,8 @@ export class RoomService {
     if (rec.status !== 'lobby') throw new ServiceError('notLobby');
     if (rec.hostSeat !== seat.seat) throw new ServiceError('notHost');
     const humans = rec.seats.filter((s) => s.guestId);
-    const debug = !!rec.settings.debugBots && this.config.devMode;
+    // Bots on empty seats: a room option (production) or the dev shortcut.
+    const debug = !!rec.settings.bots || (!!rec.settings.debugBots && this.config.devMode);
     if (!debug && humans.length < RULESET.seats) throw new ServiceError('needFourPlayers');
     if (humans.some((s) => !s.ready)) throw new ServiceError('notAllReady');
     if (humans.some((s) => !this.isConnected(s.guestId))) throw new ServiceError('someoneOffline');
@@ -307,21 +308,22 @@ export class RoomService {
     this.commit(rt);
   }
 
-  /** Lobby: free the seat. Match: voluntary exit (assets go to the bank) and the seat stops being yours. */
+  /**
+   * Lobby: free the seat. Match: a bot takes the seat over and plays on (the table stays four),
+   * the player stops being part of the room.
+   */
   leave(guestId: string): void {
     const rt = this.roomOfGuest(guestId);
     if (!rt) return;
     const rec = rt.rec;
     const seat = this.seatOf(rec, guestId)!;
-    if (rec.status === 'playing' && rec.match) {
-      const r = applyCommand(rec.match, seat.seat, { type: 'LEAVE' }, this.clock.now());
-      if (r.ok) this.applyMatch(rt, r.state, r.events);
-    }
     if (rec.status === 'lobby' || rec.status === 'finished') {
       Object.assign(seat, this.emptySeat(seat.seat));
     } else {
       seat.guestId = null;
-      seat.ready = false;
+      seat.ready = true;
+      seat.isBot = true;
+      if (!seat.name.endsWith('(бот)')) seat.name = `${seat.name} (бот)`;
     }
     rec.rematchVotes = rec.rematchVotes.filter((x) => x !== seat.seat);
     this.store.updateGuest(guestId, { room_id: null });
@@ -429,7 +431,7 @@ export class RoomService {
     const times: number[] = [];
     const d = nextDeadline(rec.match);
     if (d !== null) times.push(d);
-    if (rec.seats.some((s) => s.isBot)) times.push(now + BOT_DELAY_MS);
+    if (rec.seats.some((s) => s.isBot || this.onAutopilot(s, now))) times.push(now + BOT_DELAY_MS);
     if (!times.length) return;
     const at = Math.min(...times);
     rt.timer = this.clock.setTimeout(() => this.onTimer(rt.rec.roomId), Math.max(0, at - now) + 5);
@@ -448,12 +450,18 @@ export class RoomService {
     this.schedule(rt);
   }
 
-  /** Debug bots: one command per tick. */
+  /** A human seat offline long enough to be played by a bot. */
+  private onAutopilot(s: SeatRecord, now: number): boolean {
+    return !s.isBot && !!s.guestId && !this.isConnected(s.guestId) && now - s.lastSeen > RULESET.autopilotAfterMs;
+  }
+
+  /** Bots (empty seats, players who left, players offline too long): one command per tick. */
   private runBots(rt: Runtime): boolean {
     const rec = rt.rec;
     if (!rec.match) return false;
+    const now = this.clock.now();
     for (const s of rec.seats) {
-      if (!s.isBot) continue;
+      if (!s.isBot && !this.onAutopilot(s, now)) continue;
       const cmd: Command | null = botCommand(rec.match, s.seat, this.clock.now());
       if (!cmd) continue;
       let r = applyCommand(rec.match, s.seat, cmd, this.clock.now());
@@ -488,14 +496,8 @@ export class RoomService {
         continue;
       }
       if (rec.status === 'playing' && rec.match) {
-        // Long absence = leaving the match (assets to the bank). Short drops keep the seat.
-        for (const s of humans) {
-          const p = rec.match.players.find((x) => x.seat === s.seat);
-          if (p && p.role !== 'left' && !this.isConnected(s.guestId) && now - s.lastSeen > RULESET.absenceTimeoutMs) {
-            const r = applyCommand(rec.match, s.seat, { type: 'LEAVE' }, now);
-            if (r.ok) this.applyMatch(rt, r.state, r.events);
-          }
-        }
+        // Long absence: a bot plays the seat until the player is back (nobody waits for timers).
+        if (humans.some((s) => this.onAutopilot(s, now))) this.schedule(rt);
         if (!online.length && rec.suspendedAt === null && humans.length && humans.every((s) => now - s.lastSeen > SUSPEND_AFTER_MS)) {
           rec.suspendedAt = now;
           this.commit(rt);
@@ -625,6 +627,7 @@ export class RoomService {
           ready: s.ready,
           connected: s.isBot || this.isConnected(s.guestId),
           isBot: s.isBot,
+          autopilot: rec.status === 'playing' && this.onAutopilot(s, this.clock.now()),
           isHost: rec.hostSeat === s.seat,
         })),
       settings: rec.settings,

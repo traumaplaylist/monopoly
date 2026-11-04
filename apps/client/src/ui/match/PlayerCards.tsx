@@ -14,7 +14,9 @@ export function PlayerCards() {
     <div className="pcards" data-testid="players">
       {m.order.map((seat) => {
         const p = m.players.find((x) => x.seat === seat)!;
-        const online = room?.seats.find((s) => s.seat === seat)?.connected ?? false;
+        const rs = room?.seats.find((s) => s.seat === seat);
+        const online = rs?.connected ?? false;
+        const bot = !!rs?.isBot || !!rs?.autopilot;
         const groups = GROUP_ORDER.filter((g) => groupTiles(WORLD, g).some((t) => m.tiles[t]?.owner === seat));
         return (
           <div
@@ -27,7 +29,13 @@ export function PlayerCards() {
             <div className="pinfo">
               <div className="pname">
                 {seat === me ? 'Ты' : p.name}
-                {!online && p.role !== 'left' && (
+                {bot && (
+                  <span title={rs?.isBot ? 'Бот' : 'Нет связи — пока играет бот'}>
+                    {' '}
+                    🤖
+                  </span>
+                )}
+                {!online && !bot && p.role !== 'left' && (
                   <span className="offline" title="Нет связи — решения примет таймер">
                     {' '}
                     ⚠

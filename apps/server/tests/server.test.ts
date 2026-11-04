@@ -124,6 +124,64 @@ describe('внешность фишки', () => {
   });
 });
 
+describe('боты на свободных местах и вместо отсутствующих', () => {
+  it('в обычном (не dev) режиме хозяин с ботами начинает партию вдвоём; бот ходит сам', async () => {
+    const { url, clock } = await boot();
+    const a = new TestClient(url, 'Аня');
+    const b = new TestClient(url, 'Боря');
+    cleanup.push(() => [a, b].forEach((c) => c.close()));
+    await a.hello();
+    await b.hello();
+    const { code } = await a.emit<{ ok: boolean; code: string }>(EV.create, { settings: { minigameEvery: 2 } });
+    await b.emit(EV.join, { code });
+    for (const c of [a, b]) await c.emit(EV.ready, { ready: true });
+    expect((await a.emit(EV.start)).error).toBe('needFourPlayers');
+    expect((await a.emit(EV.settings, { minigameEvery: 2, bots: true })).ok).toBe(true);
+    for (const c of [a, b]) await c.emit(EV.ready, { ready: true }); // смена настроек сбрасывает «Готов»
+    expect((await a.emit(EV.start)).ok).toBe(true);
+    await until(() => !!a.snap?.match);
+    const m = a.snap!.match!;
+    expect(m.players).toHaveLength(4);
+    expect(a.snap!.room!.seats.filter((x) => x.isBot)).toHaveLength(2);
+    // Пусть ходят только боты: продвигаем время, пока очередь не дойдёт до бота и он не бросит кубики.
+    const botSeats = a.snap!.room!.seats.filter((x) => x.isBot).map((x) => x.seat);
+    for (let i = 0; i < 200 && !a.snap!.match!.log.some((e) => e.t === 'rolled' && botSeats.includes(e.seat)); i++) {
+      const cur = a.snap!.match!.order[a.snap!.match!.turnIndex]!;
+      if (!botSeats.includes(cur)) await (cur === a.seat ? a : b).cmd({ type: a.snap!.match!.phase === 'PRE_ROLL' ? 'ROLL' : 'END_TURN' }).catch(() => undefined);
+      await clock.advance(1000);
+    }
+    expect(a.snap!.match!.log.some((e) => e.t === 'rolled' && botSeats.includes(e.seat))).toBe(true);
+  });
+
+  it('вышедшего из партии заменяет бот: за столом по-прежнему четверо живых', async () => {
+    const { url } = await boot();
+    const { clients } = await fullTable(url);
+    cleanup.push(() => clients.forEach((c) => c.close()));
+    const leaver = clients[3]!;
+    const seat = leaver.seat!;
+    expect((await leaver.emit(EV.leave)).ok).toBe(true);
+    await until(() => clients[0]!.snap!.room!.seats.find((x) => x.seat === seat)?.isBot === true);
+    const room = clients[0]!.snap!.room!;
+    expect(room.seats.find((x) => x.seat === seat)!.name).toMatch(/\(бот\)$/);
+    expect(clients[0]!.snap!.match!.players.filter((p) => p.role === 'alive')).toHaveLength(4);
+  });
+
+  it('игрок без связи дольше 45 с играет «на автопилоте», место остаётся за ним', async () => {
+    const { url, clock, server } = await boot();
+    const { clients } = await fullTable(url);
+    cleanup.push(() => clients.forEach((c) => c.close()));
+    const off = clients[2]!;
+    const seat = off.seat!;
+    off.close();
+    await new Promise((r) => setTimeout(r, 300)); // сервер замечает отключение
+    await clock.advance(RULESET.autopilotAfterMs + 1000);
+    server.service.sweep();
+    const st = () => server.service.roomPublic((server.service as unknown as { rooms: Map<string, { rec: Parameters<typeof server.service.roomPublic>[0] }> }).rooms.values().next().value!.rec);
+    expect(st().seats.find((x) => x.seat === seat)!.autopilot).toBe(true);
+    expect(st().seats.find((x) => x.seat === seat)!.isBot).toBe(false); // место остаётся за игроком
+  });
+});
+
 describe('переподключение', () => {
   it('перезагрузка возвращает то же место; второе устройство вытесняет первое', async () => {
     const { url } = await boot();
