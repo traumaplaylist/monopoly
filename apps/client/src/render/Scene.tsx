@@ -86,7 +86,9 @@ function Sun({ profile }: { profile: Profile }) {
 }
 
 function SceneContent() {
-  const { size } = useThree();
+  const { size, gl } = useThree();
+  // Dev builds: expose the renderer so checks can read draw-call counts (gl.info).
+  if (import.meta.env.DEV) (window as unknown as { __pbGl?: unknown }).__pbGl = gl;
   const st = stageRect(size.width, size.height);
   const profile = PROFILES[pickProfile(st.w, st.h)];
   return (
@@ -128,7 +130,9 @@ export function webglAvailable(): boolean {
 export function Scene() {
   const [ok] = useState(webglAvailable);
   const dpr = useMemo<[number, number]>(() => {
-    const max = Math.min(QUALITY === 'high' ? 2 : 1.75, window.devicePixelRatio || 1) * RENDER_SCALE;
+    // With post-processing every extra pixel costs several passes: cap the resolution at 1.25×.
+    const cap = POST ? 1.25 : QUALITY === 'high' ? 2 : 1.75;
+    const max = Math.min(cap, window.devicePixelRatio || 1) * RENDER_SCALE;
     return [Math.min(1, max), max];
   }, []);
   if (!ok) {

@@ -11,19 +11,24 @@ import { MINIGAME_INFO } from '@pb/game-core';
 import { specialColor } from '../../render/tileArt';
 import { TileIcon } from '../TileIcon';
 import { mapNow } from '../mapNow';
-import { LOOK, LOOK_KEY } from '../../render/quality';
+import { DIORAMA, LOOK, LOOK_KEY, POST_KEY, POST_PREF } from '../../render/quality';
 import type { Look } from '../../render/quality';
 
 /** Board look is chosen at load (camera, models, post-processing): save it and reload the page. */
 function switchLook(look: Look) {
   if (look === LOOK) return;
+  saveAndReload(LOOK_KEY, look);
+}
+
+function saveAndReload(key: string, value: string) {
   try {
-    localStorage.setItem(LOOK_KEY, look);
+    localStorage.setItem(key, value);
   } catch {
-    /* storage blocked: the URL parameter still works */
+    /* storage blocked: the URL parameters still work */
   }
   const url = new URL(window.location.href);
   url.searchParams.delete('look');
+  url.searchParams.delete('post');
   window.location.replace(url.toString());
 }
 
@@ -432,6 +437,12 @@ function MenuSheet() {
               ))}
             </div>
           </div>
+          {DIORAMA && (
+            <label className="check">
+              <input type="checkbox" checked={POST_PREF} onChange={(e) => saveAndReload(POST_KEY, e.target.checked ? '1' : '0')} data-testid="post-fx" />
+              <span>Эффекты картинки: мягкие тени, свечение (нагружают видеокарту; если тормозит — выключите)</span>
+            </label>
+          )}
           {useStore.getState().room?.devMode && (
             <div className="dev-tools">
               <div className="muted">Отладка (только режим разработки)</div>

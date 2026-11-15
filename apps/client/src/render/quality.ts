@@ -82,7 +82,18 @@ export const LOOK: Look = (() => {
 })();
 export const DIORAMA = LOOK === 'diorama';
 
-/** Post-processing (ambient occlusion, bloom, tilt-shift): diorama look on a real GPU; `?post=1|0` overrides. */
+/**
+ * Post-processing (ambient occlusion, glow, saturation, vignette) for the diorama look. Off by default
+ * (it lagged on the user's PC): the «Эффекты картинки» setting (localStorage) or `?post=1|0`.
+ */
+export const POST_KEY = 'pb-post';
+export const POST_PREF: boolean = (() => {
+  try {
+    return localStorage.getItem(POST_KEY) === '1';
+  } catch {
+    return false;
+  }
+})();
 export const POST: boolean = (() => {
   try {
     const q = new URLSearchParams(window.location.search).get('post');
@@ -90,7 +101,7 @@ export const POST: boolean = (() => {
   } catch {
     /* ignore */
   }
-  return DIORAMA && !SOFTWARE;
+  return DIORAMA && !SOFTWARE && POST_PREF;
 })();
 
 const cache = new Map<string, BufferGeometry>();

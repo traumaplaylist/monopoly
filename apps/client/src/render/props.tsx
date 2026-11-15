@@ -2,9 +2,10 @@
 // every model is a top-level node named after its source file. <Prop> clones one, scales it so its
 // footprint fits `fit` world units and stands it on y = 0.
 import { useGLTF } from '@react-three/drei';
-import { useMemo } from 'react';
-import { Box3, Vector3 } from 'three';
-import type { Group, Mesh, Object3D } from 'three';
+import { useEffect, useMemo } from 'react';
+import { Box3, BufferAttribute, BufferGeometry, Group as ThreeGroup, Matrix4, Mesh as ThreeMesh, Vector3 } from 'three';
+import type { Group, Material, Mesh, Object3D } from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 export type PropPack = 'city' | 'space' | 'village';
 const URL: Record<PropPack, string> = {
@@ -27,6 +28,99 @@ interface PropProps {
   position?: [number, number, number];
   rotation?: number;
   shadows?: boolean;
+}
+
+/** Placement of one model in a merged batch. */
+export interface Placement {
+  name: string;
+  fit: number;
+  maxHeight?: number;
+  x: number;
+  z: number;
+  rot: number;
+  y?: number;
+}
+
+/** Same scaling as <Prop>: model-local matrix that fits the footprint and stands it on y = 0. */
+function fitMatrix(src: Object3D, fit: number, maxHeight: number | undefined): Matrix4 {
+  const box = new Box3().setFromObject(src);
+  const size = box.getSize(new Vector3());
+  const k = Math.min(fit / Math.max(size.x, size.z, 0.001), (maxHeight ?? fit) / Math.max(size.y, 0.001));
+  const c = box.getCenter(new Vector3());
+  return new Matrix4().makeTranslation(-c.x * k, -box.min.y * k, -c.z * k).multiply(new Matrix4().makeScale(k, k, k));
+}
+
+/** Float copy with only position/normal/uv (quantized glTF attributes are normalized ints). */
+function plainGeometry(g: BufferGeometry): BufferGeometry {
+  const src = g.index ? g.toNonIndexed() : g;
+  const out = new BufferGeometry();
+  const n = src.getAttribute('position').count;
+  for (const [name, size] of [['position', 3], ['normal', 3], ['uv', 2]] as const) {
+    const a = src.getAttribute(name);
+    const arr = new Float32Array(n * size);
+    if (a) for (let i = 0; i < n; i++) for (let k = 0; k < size; k++) arr[i * size + k] = a.getComponent(i, k);
+    out.setAttribute(name, new BufferAttribute(arr, size));
+  }
+  return out;
+}
+
+/**
+ * Static scenery as ONE mesh per material: hundreds of small KayKit pieces become a handful of draw
+ * calls (and shadow-pass draws). Models are looked up in the pack scene by name.
+ */
+export function buildMerged(scene: Object3D, items: Placement[], shadows = true): ThreeGroup {
+  const byMat = new Map<Material, BufferGeometry[]>();
+  for (const it of items) {
+    const src = scene.children.find((c) => c.name === it.name);
+    if (!src) continue;
+    const base = src.clone(true);
+    base.position.set(0, 0, 0);
+    base.rotation.set(0, 0, 0);
+    base.scale.set(1, 1, 1);
+    base.updateMatrixWorld(true);
+    const place = new Matrix4()
+      .makeTranslation(it.x, it.y ?? 0, it.z)
+      .multiply(new Matrix4().makeRotationY(it.rot))
+      .multiply(fitMatrix(base, it.fit, it.maxHeight));
+    base.traverse((o) => {
+      const m = o as Mesh;
+      if (!m.isMesh) return;
+      const g = plainGeometry(m.geometry);
+      g.applyMatrix4(new Matrix4().multiplyMatrices(place, m.matrixWorld));
+      const mat = Array.isArray(m.material) ? m.material[0]! : m.material;
+      const list = byMat.get(mat) ?? [];
+      list.push(g);
+      byMat.set(mat, list);
+    });
+  }
+  const group = new ThreeGroup();
+  for (const [mat, geos] of byMat) {
+    const merged = mergeGeometries(geos, false);
+    geos.forEach((g) => g.dispose());
+    if (!merged) continue;
+    merged.computeBoundingSphere();
+    const mesh = new ThreeMesh(merged, mat);
+    mesh.castShadow = shadows;
+    mesh.receiveShadow = true;
+    mesh.raycast = () => undefined;
+    group.add(mesh);
+  }
+  return group;
+}
+
+/** Merged scenery batch as a React element (geometry freed on unmount). */
+export function MergedProps({ pack, items }: { pack: PropPack; items: Placement[] }) {
+  const gltf = useGLTF(URL[pack], false, true) as unknown as { scene: Group };
+  const group = useMemo(() => buildMerged(gltf.scene, items), [gltf, items]);
+  useEffect(
+    () => () =>
+      group.traverse((o) => {
+        const m = o as Mesh;
+        if (m.isMesh) m.geometry.dispose();
+      }),
+    [group],
+  );
+  return <primitive object={group} />;
 }
 
 export function Prop({ pack, name, fit, maxHeight, position = [0, 0, 0], rotation = 0, shadows = true }: PropProps) {

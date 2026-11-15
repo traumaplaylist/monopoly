@@ -4,7 +4,7 @@ import { Suspense, useMemo } from 'react';
 import type { MapDef } from '@pb/content';
 import { centerLayout, innerArea } from './layout';
 import type { Profile } from './layout';
-import { Prop, packOfMap } from './props';
+import { MergedProps, packOfMap } from './props';
 import type { PropPack } from './props';
 
 interface Kind {
@@ -211,19 +211,18 @@ function layoutCity(profile: Profile): Cell[] {
 
 function CityGrid({ profile }: { profile: Profile }) {
   const cells = useMemo(() => layoutCity(profile), [profile]);
+  const props = useMemo(() => cells.filter((c) => c.name !== 'lawn').map((c) => ({ name: c.name, fit: c.fit, maxHeight: c.h, x: c.x, z: c.z, rot: c.rot })), [cells]);
+  const lawns = useMemo(() => cells.filter((c) => c.name === 'lawn'), [cells]);
   return (
     <Suspense fallback={null}>
       <group position={[0, 0.002, 0]}>
-        {cells.map((it, k) =>
-          it.name === 'lawn' ? (
-            <mesh key={k} position={[it.x, 0.025, it.z]} receiveShadow raycast={() => undefined}>
-              <boxGeometry args={[it.fit + 0.002, 0.05, it.fit + 0.002]} />
-              <meshStandardMaterial color="#8fcf6a" roughness={0.9} />
-            </mesh>
-          ) : (
-            <Prop key={k} pack="city" name={it.name} fit={it.fit} maxHeight={it.h} position={[it.x, 0, it.z]} rotation={it.rot} />
-          ),
-        )}
+        <MergedProps pack="city" items={props} />
+        {lawns.map((it, k) => (
+          <mesh key={k} position={[it.x, 0.025, it.z]} receiveShadow raycast={() => undefined}>
+            <boxGeometry args={[it.fit + 0.002, 0.05, it.fit + 0.002]} />
+            <meshStandardMaterial color="#8fcf6a" roughness={0.9} />
+          </mesh>
+        ))}
       </group>
     </Suspense>
   );
@@ -231,16 +230,15 @@ function CityGrid({ profile }: { profile: Profile }) {
 
 export function Scenery({ profile, map }: { profile: Profile; map: MapDef }) {
   const pack = packOfMap(map.id);
-  const items = useMemo(() => (pack === 'city' ? [] : layoutScenery(pack, profile)), [pack, profile]);
+  const sc = profile.id === 'portrait' ? 0.85 : 1;
+  const items = useMemo(
+    () => (pack === 'city' ? [] : layoutScenery(pack, profile).map((it) => ({ name: it.name, fit: it.fit * sc, maxHeight: it.h * sc, x: it.x, z: it.z, rot: it.rot }))),
+    [pack, profile, sc],
+  );
   if (pack === 'city') return <CityGrid profile={profile} />;
-  const s = profile.id === 'portrait' ? 0.85 : 1;
   return (
     <Suspense fallback={null}>
-      <group>
-        {items.map((it, k) => (
-          <Prop key={k} pack={pack} name={it.name} fit={it.fit * s} maxHeight={it.h * s} position={[it.x, 0, it.z]} rotation={it.rot} />
-        ))}
-      </group>
+      <MergedProps pack={pack} items={items} />
     </Suspense>
   );
 }
