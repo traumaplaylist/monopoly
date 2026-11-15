@@ -50,3 +50,6 @@
 - Сборка: `node scripts/build-characters.mjs <папка с Male/*.glb и Female/*.glb>` → `apps/client/public/models/characters/<наряд>.glb` (без анимаций и оружия, meshopt), общий файл анимаций `clips.glb` (Idle, Wave, Walk) и каталог `packages/content/src/characterCatalog.ts`. Военные наряды (Soldier, Swat) исключены.
 - Миниатюры гардероба: запустить клиент в dev и `node scripts/make-thumbs.mjs http://localhost:5173` → `models/characters/thumbs/<наряд>-<слот>.png`.
 - Новый наряд из Blender: та же структура (скелет Quaternius, узлы `<Имя>_Head/_Body/_Legs/_Feet`, материалы `Skin`, `Hair*`, ткань), положить в папку-источник и пересобрать — появится в гардеробе.
+
+## 3D-модели окружения (с 15.11.2026)
+**KayKit** by Kay Lousberg (www.kaylousberg.com), лицензия **CC0** (можно в коммерческих проектах, указание автора не обязательно, но мы указываем): City Builder Bits 1.0, Space Base Bits 1.0, Medieval Hexagon Pack 1.0. Исходники — публичные репозитории `github.com/KayKit-Game-Assets/…`. Выбранные модели собраны скриптом `scripts/build-props.mjs` в `apps/client/public/models/props/city.glb` (≈0,46 МБ), `space.glb` (≈0,34 МБ), `village.glb` (≈0,78 МБ); каждая модель — узел с именем исходного файла. Используются только в «Объёмном» виде.

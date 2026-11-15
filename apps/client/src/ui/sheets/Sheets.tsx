@@ -11,6 +11,21 @@ import { MINIGAME_INFO } from '@pb/game-core';
 import { specialColor } from '../../render/tileArt';
 import { TileIcon } from '../TileIcon';
 import { mapNow } from '../mapNow';
+import { LOOK, LOOK_KEY } from '../../render/quality';
+import type { Look } from '../../render/quality';
+
+/** Board look is chosen at load (camera, models, post-processing): save it and reload the page. */
+function switchLook(look: Look) {
+  if (look === LOOK) return;
+  try {
+    localStorage.setItem(LOOK_KEY, look);
+  } catch {
+    /* storage blocked: the URL parameter still works */
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.delete('look');
+  window.location.replace(url.toString());
+}
 
 const S = (m: PublicMatch) => m as unknown as MatchState;
 
@@ -402,6 +417,21 @@ function MenuSheet() {
             <input type="checkbox" checked={prefs.reduceMotion} onChange={(e) => setPrefs({ reduceMotion: e.target.checked })} />
             <span>Меньше анимации</span>
           </label>
+          <div className="field">
+            <span>Вид поля (страница перезагрузится, партия продолжится)</span>
+            <div className="seg">
+              {(
+                [
+                  ['classic', 'Классика'],
+                  ['diorama', 'Объёмный (бета)'],
+                ] as const
+              ).map(([id, label]) => (
+                <button key={id} className={LOOK === id ? 'on' : ''} onClick={() => switchLook(id)} data-testid={`look-${id}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {useStore.getState().room?.devMode && (
             <div className="dev-tools">
               <div className="muted">Отладка (только режим разработки)</div>

@@ -9,7 +9,8 @@ import { onTileClick } from '../ui/actions';
 import { loadImage, useManifest } from './assets';
 import { TILE_HEIGHT, centerLayout, tileRect } from './layout';
 import type { Profile } from './layout';
-import { roundedSlab } from './quality';
+import { DIORAMA, roundedSlab } from './quality';
+import { Scenery } from './Scenery';
 import { iconImage } from './icons';
 import { PALETTE, cardEdgeColor, iconColor, createDeckTexture, createPaperTexture, createTileTexture } from './tileArt';
 import { crystalGeometry } from './jelly';
@@ -34,7 +35,7 @@ export function Board({ profile }: { profile: Profile }) {
       <Plate profile={profile} map={map} />
       <Tiles profile={profile} map={map} />
       <Decks profile={profile} />
-      <CenterDecor profile={profile} map={map} />
+      {DIORAMA ? <Scenery profile={profile} map={map} /> : <CenterDecor profile={profile} map={map} />}
     </group>
   );
 }

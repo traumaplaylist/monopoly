@@ -10,11 +10,15 @@ import { Pieces } from './Pieces';
 import { Tokens } from './Tokens';
 import { PROFILES, pickProfile } from './layout';
 import type { Profile } from './layout';
-import { QUALITY, RENDER_SCALE, SHADOWS } from './quality';
+import { DIORAMA, POST, QUALITY, RENDER_SCALE, SHADOWS } from './quality';
+import { Environment, Lightformer } from '@react-three/drei';
+import { Post } from './Post';
 import { observeStage, stageRect } from './stage';
 
 /** Nearly top-down view with a small tilt (radians from vertical). */
-const TILT = 0.3; // close to top-down like the reference images: crisp, unsquashed tile text
+// Classic: close to top-down like the reference images (crisp, unsquashed tile text).
+// Diorama: a table-top view at ~40° so buildings and scenery read as 3D.
+const TILT = DIORAMA ? 0.72 : 0.3;
 const CAM_DIST = 40;
 
 /**
@@ -37,7 +41,7 @@ function CameraRig({ profile }: { profile: Profile }) {
     cam.updateMatrixWorld();
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     const m = profile.id === 'portrait' ? 0.2 : 0.25;
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (const y of [0, 0.9]) {
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (const y of [0, DIORAMA ? 1.3 : 0.9]) {
       const p = new Vector3(sx * (profile.width / 2 + m), y, sz * (profile.height / 2 + m)).applyMatrix4(cam.matrixWorldInverse);
       minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
       minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
@@ -99,6 +103,15 @@ function SceneContent() {
         <Dice profile={profile} />
         <FxLayer profile={profile} />
       </group>
+      {DIORAMA && (
+        // Soft studio reflections for glossy dice, coins and cards (no HDR download).
+        <Environment resolution={128} frames={1}>
+          <Lightformer intensity={1.6} color="#fff3e0" position={[0, 6, 4]} scale={[12, 4, 1]} />
+          <Lightformer intensity={0.8} color="#b9a6ff" position={[-8, 3, -2]} rotation={[0, Math.PI / 2, 0]} scale={[8, 3, 1]} />
+          <Lightformer intensity={0.6} color="#ffd6a0" position={[8, 3, -2]} rotation={[0, -Math.PI / 2, 0]} scale={[8, 3, 1]} />
+        </Environment>
+      )}
+      {POST && <Post />}
     </>
   );
 }

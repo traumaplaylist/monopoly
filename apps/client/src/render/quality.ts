@@ -64,6 +64,35 @@ export const SHADOWS: boolean = (() => {
   }
 })();
 
+/**
+ * Board look. «diorama» (beta): tilted camera, KayKit models (buildings on upgrades, themed scenery)
+ * and post-processing. Chosen with `?look=3d` / `?look=classic` or the in-game setting (localStorage).
+ */
+export type Look = 'classic' | 'diorama';
+export const LOOK_KEY = 'pb-look';
+export const LOOK: Look = (() => {
+  try {
+    const q = new URLSearchParams(window.location.search).get('look');
+    if (q === '3d' || q === 'diorama') return 'diorama';
+    if (q === 'classic') return 'classic';
+    return localStorage.getItem(LOOK_KEY) === 'diorama' ? 'diorama' : 'classic';
+  } catch {
+    return 'classic';
+  }
+})();
+export const DIORAMA = LOOK === 'diorama';
+
+/** Post-processing (ambient occlusion, bloom, tilt-shift): diorama look on a real GPU; `?post=1|0` overrides. */
+export const POST: boolean = (() => {
+  try {
+    const q = new URLSearchParams(window.location.search).get('post');
+    if (q === '0' || q === '1') return q === '1';
+  } catch {
+    /* ignore */
+  }
+  return DIORAMA && !SOFTWARE;
+})();
+
 const cache = new Map<string, BufferGeometry>();
 
 /**
